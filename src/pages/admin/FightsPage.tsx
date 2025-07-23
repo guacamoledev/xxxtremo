@@ -1,10 +1,7 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import {
   Box,
   Button,
-  Card,
-  CardContent,
-  CardActions,
   Chip,
   Dialog,
   DialogActions,
@@ -21,13 +18,32 @@ import {
   Typography,
   Alert,
   Tooltip,
+  Tabs,
+  Tab,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  TablePagination,
 } from '@mui/material';
+import type { SelectChangeEvent } from '@mui/material';
+import UploadFileIcon from '@mui/icons-material/UploadFile';
+// Importa xlsx para parsear archivos Excel
+import * as XLSX from 'xlsx';
+// Solo la definición de la interfaz fuera del componente
+interface BulkFightRow {
+  'Gallo Rojo': string;
+  'Gallo Verde': string;
+  'Apuesta mínima': number;
+  'Fecha/Hora (opcional)'?: string;
+}
 import {
   Add as AddIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
   Sports as SportsIcon,
-  Event as EventIcon,
 } from '@mui/icons-material';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
@@ -54,6 +70,9 @@ interface FightFormData {
   minBet: number;
   winner?: 'red' | 'green' | null;
 }
+
+// ...existing code...
+
 
 const initialFormData: FightFormData = {
   eventId: '',
@@ -86,15 +105,128 @@ const statusLabels = {
   finished: 'Finalizada',
 };
 
-export default function FightsPage() {
+function FightsPage() {
+  // ...existing code...
+  // Estados para carga masiva
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [bulkEventId, setBulkEventId] = useState('');
+  const [bulkFile, setBulkFile] = useState<File | null>(null);
+  const [bulkLoading, setBulkLoading] = useState(false);
+  const [bulkError, setBulkError] = useState<string | null>(null);
+  const [bulkSuccess, setBulkSuccess] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Handler para abrir modal de carga masiva
+  const handleBulkOpen = () => {
+    setBulkOpen(true);
+    setBulkEventId('');
+    setBulkFile(null);
+    setBulkError(null);
+    setBulkSuccess(null);
+  };
+
+  const handleBulkClose = () => {
+    setBulkOpen(false);
+    setBulkEventId('');
+    setBulkFile(null);
+    setBulkError(null);
+    setBulkSuccess(null);
+  };
+
+  // Handler para archivo
+  const handleBulkFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setBulkFile(e.target.files[0]);
+      setBulkError(null);
+      setBulkSuccess(null);
+    }
+  };
+
+  // Handler para importar peleas
+  const handleBulkImport = async () => {
+    if (!bulkEventId || !bulkFile) {
+      setBulkError('Selecciona un evento y un archivo.');
+      return;
+    }
+    setBulkLoading(true);
+    setBulkError(null);
+    setBulkSuccess(null);
+    try {
+      // Leer archivo Excel
+      const data = await bulkFile.arrayBuffer();
+      const workbook = XLSX.read(data, { type: 'array' });
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      const rows: BulkFightRow[] = XLSX.utils.sheet_to_json(sheet);
+      if (!rows.length) throw new Error('El archivo está vacío o mal formateado.');
+
+      // Validar evento
+      const selectedEvent = events.find((ev: any) => ev.id === bulkEventId);
+      if (!selectedEvent) throw new Error('Evento no encontrado.');
+
+      // Obtener el siguiente número de pelea
+      let nextFightNumber = getNextFightNumber(bulkEventId);
+
+      // Validar y preparar peleas
+      const fightsToCreate = rows.map((row, idx) => {
+        if (!row['Gallo Rojo'] || !row['Gallo Verde'] || !row['Apuesta mínima']) {
+          throw new Error(`Fila ${idx + 2}: Faltan datos obligatorios.`);
+        }
+        const minBet = Number(row['Apuesta mínima']);
+        if (isNaN(minBet) || minBet < 100) {
+          throw new Error(`Fila ${idx + 2}: La apuesta mínima debe ser al menos $100.`);
+        }
+        let scheduledTime = selectedEvent.startTime;
+        if (row['Fecha/Hora (opcional)']) {
+          // Intentar parsear fecha/hora DD/MM/YYYY HH:mm
+          const d = dayjs(row['Fecha/Hora (opcional)'], 'DD/MM/YYYY HH:mm');
+          if (d.isValid()) scheduledTime = { toDate: () => d.toDate() } as any;
+        }
+        return {
+          eventId: bulkEventId,
+          fightNumber: nextFightNumber++,
+          redFighter: row['Gallo Rojo'],
+          greenFighter: row['Gallo Verde'],
+          status: 'scheduled' as FightStatus,
+          minBet,
+          winner: null,
+          cock1: { name: row['Gallo Rojo'], breed: '', weight: 0, owner: '' },
+          cock2: { name: row['Gallo Verde'], breed: '', weight: 0, owner: '' },
+          bettingEnabled: true,
+          scheduledTime,
+        };
+      });
+
+      // Crear peleas en batch (secuencial para feedback)
+      for (const fight of fightsToCreate) {
+        // eslint-disable-next-line no-await-in-loop
+        await createFightMutation.mutateAsync(fight);
+      }
+      setBulkSuccess(`¡${fightsToCreate.length} peleas importadas correctamente!`);
+      setBulkFile(null);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    } catch (err: any) {
+      setBulkError(err.message || 'Error al importar peleas.');
+    } finally {
+      setBulkLoading(false);
+    }
+  };
+  const { data: fights = [], isLoading: fightsLoading, error: fightsError } = useFights();
+  const { data: events = [], isLoading: eventsLoading } = useEvents();
+  
   const [open, setOpen] = useState(false);
   const [editingFight, setEditingFight] = useState<Fight | null>(null);
   const [formData, setFormData] = useState<FightFormData>(initialFormData);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [fightToDelete, setFightToDelete] = useState<Fight | null>(null);
+  const [tabIndex, setTabIndex] = useState(0);
+  // Estados para búsqueda, paginación, ordenamiento y filtro de status de la tabla de peleas
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [orderBy, setOrderBy] = useState<'fightNumber' | 'cock1' | 'cock2' | 'status' | 'minBet' | 'scheduledTime'>('fightNumber');
+  const [order, setOrder] = useState<'asc' | 'desc'>('asc');
+  const [statusFilter, setStatusFilter] = useState<FightStatus[]>([]);
 
-  const { data: fights = [], isLoading: fightsLoading, error: fightsError } = useFights();
-  const { data: events = [], isLoading: eventsLoading } = useEvents();
   const createFightMutation = useCreateFight();
   const updateFightMutation = useUpdateFight();
   const deleteFightMutation = useDeleteFight();
@@ -276,18 +408,27 @@ export default function FightsPage() {
         </Typography>
         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
           {[1, 2, 3].map((item) => (
-            <Card key={item} sx={{ width: 400 }}>
-              <CardContent>
-                <Skeleton variant="text" sx={{ fontSize: '1.5rem' }} />
-                <Skeleton variant="text" />
-                <Skeleton variant="text" />
-              </CardContent>
-            </Card>
+            <Paper key={item} sx={{ width: 400, p: 2 }}>
+              <Skeleton variant="text" sx={{ fontSize: '1.5rem' }} />
+              <Skeleton variant="text" />
+              <Skeleton variant="text" />
+            </Paper>
           ))}
         </Box>
       </Box>
     );
   }
+
+  // Un evento está "finalizado" si todas sus peleas están finalizadas Y tiene al menos una pelea
+  // Si no tiene peleas, debe considerarse como no finalizado (activo)
+  const nonFinishedEvents = events
+    .filter(event => {
+      const eventFights = fights.filter(f => f.eventId === event.id);
+      if (eventFights.length === 0) return true;
+      return eventFights.some(f => f.status !== 'finished');
+    })
+    .sort((a, b) => b.startTime.toDate().getTime() - a.startTime.toDate().getTime());
+ 
 
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="es">
@@ -296,13 +437,80 @@ export default function FightsPage() {
           <Typography variant="h4" component="h1">
             Gestión de Peleas
           </Typography>
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={() => handleOpen()}
-          >
-            Nueva Pelea
-          </Button>
+          <Box sx={{ display: 'flex', gap: 2 }}>
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={() => handleOpen()}
+            >
+              Nueva Pelea
+            </Button>
+            <Button
+              variant="outlined"
+              startIcon={<UploadFileIcon />}
+              onClick={handleBulkOpen}
+            >
+              Subir peleas
+            </Button>
+          </Box>
+        {/* Modal de carga masiva de peleas */}
+        <Dialog open={bulkOpen} onClose={handleBulkClose} maxWidth="sm" fullWidth>
+          <DialogTitle>Cargar peleas desde Excel</DialogTitle>
+          <DialogContent>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+              <FormControl fullWidth required>
+                <InputLabel>Evento</InputLabel>
+                <Select
+                  value={bulkEventId}
+                  label="Evento"
+                  onChange={e => setBulkEventId(e.target.value)}
+                >
+                  {events.filter(e => e.status !== 'finished').map(event => (
+                    <MenuItem key={event.id} value={event.id}>
+                      {event.name} - {dayjs(event.startTime.toDate()).format('DD/MM/YYYY')}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+              <Button
+                variant="outlined"
+                component="label"
+                startIcon={<UploadFileIcon />}
+                disabled={!bulkEventId || bulkLoading}
+              >
+                Seleccionar archivo Excel
+                <input
+                  type="file"
+                  accept=".xlsx,.xls,.csv"
+                  hidden
+                  ref={fileInputRef}
+                  onChange={handleBulkFileChange}
+                />
+              </Button>
+              {bulkFile && (
+                <Typography variant="body2" color="text.secondary">
+                  Archivo seleccionado: {bulkFile.name}
+                </Typography>
+              )}
+              <Alert severity="info">
+                El archivo debe tener las siguientes columnas: <b>Gallo Rojo</b>, <b>Gallo Verde</b>, <b>Apuesta mínima</b>, <b>Fecha/Hora (opcional)</b>.<br/>
+                Descarga una <a href="/plantilla_peleas.xlsx" download>plantilla aquí</a>.
+              </Alert>
+              {bulkError && <Alert severity="error">{bulkError}</Alert>}
+              {bulkSuccess && <Alert severity="success">{bulkSuccess}</Alert>}
+            </Box>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={handleBulkClose} disabled={bulkLoading}>Cancelar</Button>
+            <Button
+              onClick={handleBulkImport}
+              variant="contained"
+              disabled={!bulkEventId || !bulkFile || bulkLoading}
+            >
+              {bulkLoading ? 'Importando...' : 'Importar'}
+            </Button>
+          </DialogActions>
+        </Dialog>
         </Box>
 
         {fights.length === 0 ? (
@@ -323,135 +531,239 @@ export default function FightsPage() {
             </Button>
           </Paper>
         ) : (
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
-            {fights.map((fight) => {
-              const event = events.find(e => e.id === fight.eventId);
+          <Box>
+            <Tabs
+              value={tabIndex}
+              onChange={(_, newValue) => setTabIndex(newValue)}
+              variant="scrollable"
+              scrollButtons="auto"
+              sx={{ mb: 3 }}
+            >
+              {nonFinishedEvents.map((event) => (
+                <Tab key={event.id} label={event.name + ' (' + dayjs(event.startTime.toDate()).format('DD/MM/YYYY') + ')'} />
+              ))}
+            </Tabs>
+            {nonFinishedEvents.length === 0 ? (
+              <Paper sx={{ p: 4, textAlign: 'center' }}>
+                <Typography variant="body2" color="text.secondary">
+                  No hay eventos activos.
+                </Typography>
+              </Paper>
+            ) : (() => {
+              // Tabla de peleas para el evento seleccionado
+              const event = nonFinishedEvents[tabIndex];
+              if (!event) return null;
+              let fightsByEvent = fights.filter(f => f.eventId === event.id);
+              // Filtro por status
+              if (statusFilter.length > 0) {
+                fightsByEvent = fightsByEvent.filter(f => statusFilter.includes(f.status));
+              }
+              if (search) {
+                const s = search.toLowerCase();
+                fightsByEvent = fightsByEvent.filter(f =>
+                  f.cock1.name.toLowerCase().includes(s) ||
+                  f.cock2.name.toLowerCase().includes(s) ||
+                  ('' + f.fightNumber).includes(s)
+                );
+              }
+              // Ordenar por columna seleccionada
+              fightsByEvent = [...fightsByEvent].sort((a, b) => {
+                let aValue: any;
+                let bValue: any;
+                switch (orderBy) {
+                  case 'fightNumber':
+                    aValue = a.fightNumber;
+                    bValue = b.fightNumber;
+                    break;
+                  case 'cock1':
+                    aValue = a.cock1.name.toLowerCase();
+                    bValue = b.cock1.name.toLowerCase();
+                    break;
+                  case 'cock2':
+                    aValue = a.cock2.name.toLowerCase();
+                    bValue = b.cock2.name.toLowerCase();
+                    break;
+                  case 'status':
+                    aValue = a.status;
+                    bValue = b.status;
+                    break;
+                  case 'minBet':
+                    aValue = a.minBet;
+                    bValue = b.minBet;
+                    break;
+                  case 'scheduledTime':
+                    aValue = a.scheduledTime ? a.scheduledTime.toDate().getTime() : 0;
+                    bValue = b.scheduledTime ? b.scheduledTime.toDate().getTime() : 0;
+                    break;
+                  default:
+                    aValue = a.fightNumber;
+                    bValue = b.fightNumber;
+                }
+                if (aValue < bValue) return order === 'asc' ? -1 : 1;
+                if (aValue > bValue) return order === 'asc' ? 1 : -1;
+                return 0;
+              });
+              const paginatedFights = fightsByEvent.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+              // Handler para ordenar columnas
+              const handleSort = (property: typeof orderBy) => {
+                if (orderBy === property) {
+                  setOrder(order === 'asc' ? 'desc' : 'asc');
+                } else {
+                  setOrderBy(property);
+                  setOrder('asc');
+                }
+              };
+              // Handler para filtro de status
+              const handleStatusFilterChange = (e: SelectChangeEvent<FightStatus[]>) => {
+                const value = e.target.value;
+                setStatusFilter(typeof value === 'string' ? value.split(',') as FightStatus[] : value as FightStatus[]);
+                setPage(0);
+              };
               return (
-                <Card key={fight.id} sx={{ width: 420 }}>
-                  <CardContent>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
-                      <Box>
-                        <Typography variant="h6" component="h3">
-                          Pelea #{fight.fightNumber}
-                        </Typography>
-                        <Typography variant="subtitle1" color="text.secondary">
-                          {fight.cock1.name} vs {fight.cock2.name}
-                        </Typography>
-                      </Box>
-                      <Chip
-                        label={statusLabels[fight.status]}
-                        color={statusColors[fight.status]}
+                <Box key={event.id}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2, gap: 2, flexWrap: 'wrap' }}>
+                    <Typography variant="h6">Peleas del evento</Typography>
+                    <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+                      <FormControl size="small" sx={{ minWidth: 180 }}>
+                        <InputLabel>Status</InputLabel>
+                        <Select
+                          multiple
+                          value={statusFilter}
+                          onChange={handleStatusFilterChange}
+                          label="Status"
+                          renderValue={(selected) =>
+                            (selected as FightStatus[]).map(s => statusLabels[s]).join(', ') || 'Todos'
+                          }
+                        >
+                          {Object.entries(statusLabels).map(([key, label]) => (
+                            <MenuItem key={key} value={key}>
+                              <Chip size="small" label={label} color={statusColors[key as FightStatus]} sx={{ mr: 1 }} />
+                              {label}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
+                      <TextField
                         size="small"
+                        placeholder="Buscar pelea, gallo..."
+                        value={search}
+                        onChange={e => setSearch(e.target.value)}
+                        sx={{ width: 260 }}
                       />
                     </Box>
-
-                    {event && (
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-                        <EventIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
-                        <Typography variant="body2" color="text.secondary">
-                          {event.name}
-                        </Typography>
-                      </Box>
-                    )}
-
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-                      <Box sx={{ flex: 1, mr: 1 }}>
-                        <Typography variant="subtitle2" color="primary">
-                          Gallo 1
-                        </Typography>
-                        <Typography variant="body2">
-                          <strong>{fight.cock1.name}</strong>
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          Peso: {fight.cock1.weight}kg
-                        </Typography>
-                      </Box>
-
-                      <Box sx={{ flex: 1, ml: 1 }}>
-                        <Typography variant="subtitle2" color="secondary">
-                          Gallo 2
-                        </Typography>
-                        <Typography variant="body2">
-                          <strong>{fight.cock2.name}</strong>
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          Peso: {fight.cock2.weight}kg
-                        </Typography>
-                      </Box>
-                    </Box>
-
-                    {fight.scheduledTime && (
-                      <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                        Fecha: {dayjs(fight.scheduledTime.toDate()).format('DD/MM/YYYY HH:mm')}
-                      </Typography>
-                    )}
-
-                    <Typography variant="body2" color="text.secondary">
-                      Apuesta mínima: ${fight.minBet} MXN
-                    </Typography>
-
-                    {/* Información del ganador */}
-                    {fight.status === 'finished' && (
-                      <Box sx={{ mt: 1, p: 1, bgcolor: 'grey.100', borderRadius: 1 }}>
-                        {fight.winner ? (
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <SportsIcon sx={{ fontSize: 16, color: fight.winner === 'red' ? 'error.main' : 'success.main' }} />
-                            <Typography variant="body2" fontWeight="bold" color={fight.winner === 'red' ? 'error.main' : 'success.main'}>
-                              Ganador: {fight.winner === 'red' ? "ROJO" : "VERDE"}
-                            </Typography>
-                          </Box>
-                        ) : (
-                          <Typography variant="body2" color="text.secondary">
-                            Sin ganador / Empate
-                          </Typography>
+                  </Box>
+                  <TableContainer component={Paper}>
+                    <Table size="small">
+                      <TableHead>
+                        <TableRow>
+                          <TableCell
+                            onClick={() => handleSort('fightNumber')}
+                            style={{ cursor: 'pointer' }}
+                          >
+                            # {orderBy === 'fightNumber' ? (order === 'asc' ? '▲' : '▼') : ''}
+                          </TableCell>
+                          <TableCell
+                            onClick={() => handleSort('cock1')}
+                            style={{ cursor: 'pointer' }}
+                          >
+                            Gallo Rojo {orderBy === 'cock1' ? (order === 'asc' ? '▲' : '▼') : ''}
+                          </TableCell>
+                          <TableCell
+                            onClick={() => handleSort('cock2')}
+                            style={{ cursor: 'pointer' }}
+                          >
+                            Gallo Verde {orderBy === 'cock2' ? (order === 'asc' ? '▲' : '▼') : ''}
+                          </TableCell>
+                          <TableCell
+                            onClick={() => handleSort('status')}
+                            style={{ cursor: 'pointer' }}
+                          >
+                            Estado {orderBy === 'status' ? (order === 'asc' ? '▲' : '▼') : ''}
+                          </TableCell>
+                          <TableCell
+                            onClick={() => handleSort('minBet')}
+                            style={{ cursor: 'pointer' }}
+                          >
+                            Apuesta mínima {orderBy === 'minBet' ? (order === 'asc' ? '▲' : '▼') : ''}
+                          </TableCell>
+                          <TableCell
+                            onClick={() => handleSort('scheduledTime')}
+                            style={{ cursor: 'pointer' }}
+                          >
+                            Fecha/Hora {orderBy === 'scheduledTime' ? (order === 'asc' ? '▲' : '▼') : ''}
+                          </TableCell>
+                          <TableCell>Acciones</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {paginatedFights.map(fight => (
+                          <TableRow key={fight.id}>
+                            <TableCell>{fight.fightNumber}</TableCell>
+                            <TableCell>{fight.cock1.name}</TableCell>
+                            <TableCell>{fight.cock2.name}</TableCell>
+                            <TableCell>
+                              <Chip
+                                label={statusLabels[fight.status]}
+                                color={statusColors[fight.status]}
+                                size="small"
+                              />
+                            </TableCell>
+                            <TableCell>${fight.minBet}</TableCell>
+                            <TableCell>
+                              {fight.scheduledTime ? dayjs(fight.scheduledTime.toDate()).format('DD/MM/YYYY HH:mm') : ''}
+                            </TableCell>
+                            <TableCell>
+                              <Tooltip title="Editar pelea">
+                                <IconButton size="small" onClick={() => handleOpen(fight)}>
+                                  <EditIcon />
+                                </IconButton>
+                              </Tooltip>
+                              {fight.status === 'finished' && fight.winner !== undefined && !fight.resolved && (
+                                <Tooltip title="Resolver apuestas">
+                                  <Button
+                                    size="small"
+                                    variant="outlined"
+                                    color="success"
+                                    onClick={() => handleResolveBets(fight)}
+                                    sx={{ mr: 1 }}
+                                  >
+                                    Resolver Apuestas
+                                  </Button>
+                                </Tooltip>
+                              )}
+                              <Tooltip title="Eliminar pelea">
+                                <IconButton size="small" onClick={() => confirmDelete(fight)} color="error">
+                                  <DeleteIcon />
+                                </IconButton>
+                              </Tooltip>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                        {paginatedFights.length === 0 && (
+                          <TableRow>
+                            <TableCell colSpan={9} align="center">
+                              No hay peleas para este evento.
+                            </TableCell>
+                          </TableRow>
                         )}
-                        {fight.resolved && (
-                          <Typography variant="caption" color="success.main">
-                            ✅ Apuestas resueltas
-                          </Typography>
-                        )}
-                      </Box>
-                    )}
-                  </CardContent>
-
-                  <CardActions>
-                    <Tooltip title="Editar pelea">
-                      <IconButton
-                        size="small"
-                        onClick={() => handleOpen(fight)}
-                      >
-                        <EditIcon />
-                      </IconButton>
-                    </Tooltip>
-                    
-                    {/* Botón para resolver apuestas manualmente */}
-                    {fight.status === 'finished' && fight.winner !== undefined && !fight.resolved && (
-                      <Tooltip title="Resolver apuestas">
-                        <Button
-                          size="small"
-                          variant="outlined"
-                          color="success"
-                          onClick={() => handleResolveBets(fight)}
-                          sx={{ mr: 1 }}
-                        >
-                          Resolver Apuestas
-                        </Button>
-                      </Tooltip>
-                    )}
-                    
-                    <Tooltip title="Eliminar pelea">
-                      <IconButton
-                        size="small"
-                        onClick={() => confirmDelete(fight)}
-                        color="error"
-                      >
-                        <DeleteIcon />
-                      </IconButton>
-                    </Tooltip>
-                  </CardActions>
-                </Card>
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                  <TablePagination
+                    component="div"
+                    count={fightsByEvent.length}
+                    page={page}
+                    onPageChange={(_, newPage) => setPage(newPage)}
+                    rowsPerPage={rowsPerPage}
+                    onRowsPerPageChange={e => {
+                      setRowsPerPage(parseInt(e.target.value, 10));
+                      setPage(0);
+                    }}
+                    rowsPerPageOptions={[10, 25, 50, 100]}
+                  />
+                </Box>
               );
-            })}
+            })()}
           </Box>
         )}
 
@@ -469,11 +781,13 @@ export default function FightsPage() {
                   label="Evento"
                   onChange={(e) => setFormData({ ...formData, eventId: e.target.value })}
                 >
-                  {events.map((event) => (
-                    <MenuItem key={event.id} value={event.id}>
-                      {event.name} - {dayjs(event.startTime.toDate()).format('DD/MM/YYYY')}
-                    </MenuItem>
-                  ))}
+                  {events
+                    .filter(event => event.status !== 'finished')
+                    .map((event) => (
+                      <MenuItem key={event.id} value={event.id}>
+                        {event.name} - {dayjs(event.startTime.toDate()).format('DD/MM/YYYY')}
+                      </MenuItem>
+                    ))}
                 </Select>
               </FormControl>
 
@@ -487,11 +801,11 @@ export default function FightsPage() {
               <Box sx={{ display: 'flex', gap: 2 }}>
                 <Box sx={{ flex: 1 }}>
                   <Typography variant="subtitle1" gutterBottom color="primary">
-                    Gallo 1
+                    Gallo Rojo
                   </Typography>
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                     <TextField
-                      label="Nombre del Gallo"
+                      label="Nombre del Partido"
                       fullWidth
                       value={formData.cock1.name}
                       onChange={(e) => setFormData({
@@ -500,27 +814,17 @@ export default function FightsPage() {
                       })}
                       required
                     />
-                    <TextField
-                      label="Peso (kg)"
-                      type="number"
-                      fullWidth
-                      value={formData.cock1.weight}
-                      onChange={(e) => setFormData({
-                        ...formData,
-                        cock1: { ...formData.cock1, weight: parseFloat(e.target.value) || 0 }
-                      })}
-                      inputProps={{ min: 0, step: 0.1 }}
-                    />
+                    
                   </Box>
                 </Box>
 
                 <Box sx={{ flex: 1 }}>
                   <Typography variant="subtitle1" gutterBottom color="secondary">
-                    Gallo 2
+                    Gallo Verde
                   </Typography>
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                     <TextField
-                      label="Nombre del Gallo"
+                      label="Nombre del Partido"
                       fullWidth
                       value={formData.cock2.name}
                       onChange={(e) => setFormData({
@@ -528,17 +832,6 @@ export default function FightsPage() {
                         cock2: { ...formData.cock2, name: e.target.value }
                       })}
                       required
-                    />
-                    <TextField
-                      label="Peso (kg)"
-                      type="number"
-                      fullWidth
-                      value={formData.cock2.weight}
-                      onChange={(e) => setFormData({
-                        ...formData,
-                        cock2: { ...formData.cock2, weight: parseFloat(e.target.value) || 0 }
-                      })}
-                      inputProps={{ min: 0, step: 0.1 }}
                     />
                   </Box>
                 </Box>
@@ -629,3 +922,5 @@ export default function FightsPage() {
     </LocalizationProvider>
   );
 }
+
+export default FightsPage;

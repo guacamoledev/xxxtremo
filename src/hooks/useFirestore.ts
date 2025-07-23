@@ -587,7 +587,7 @@ export const usePlaceBet = () => {
       // Mostrar notificación de éxito al usuario
       const colorText = variables.color === 'red' ? 'Rojo' : 'Verde';
       showSuccess(
-        `¡Apuesta aceptada! $${variables.amount.toLocaleString()} MXN en ${colorText}`,
+        `¡Apuesta creada! $${variables.amount.toLocaleString()} MXN en ${colorText}`,
         8000
       );
       
