@@ -22,7 +22,8 @@ import {
   Casino,
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
-import { useBetsByUser, useFights } from '../hooks/useFirestore';
+import { useFights } from '../hooks/useFirestore';
+import { useBetsByUserRealtime } from '../hooks/useBetsByUserRealtime';
 import type { Bet, Fight } from '../types';
 
 interface UserBetsPanelProps {
@@ -77,15 +78,14 @@ const BetItem: React.FC<{ bet: Bet; fight: Fight | undefined }> = ({ bet, fight 
   const getStatusText = (status: string, bet?: Bet) => {
     // Detectar apuestas parcialmente emparejadas
     const isPartiallyMatched = bet && status === 'pending' && bet.matchedAmount && bet.matchedAmount < bet.amount;
-    
     if (isPartiallyMatched) return 'Aceptada - Ajustada';
-    
     switch (status) {
       case 'pending': return 'Pendiente';
       case 'matched': return 'Emparejada';
       case 'won': return 'Ganada';
       case 'lost': return 'Perdida';
       case 'rejected': return 'Reembolsada';
+      case 'refunded': return 'No Aceptada';
       default: return status;
     }
   };
@@ -167,7 +167,7 @@ export const UserBetsPanel: React.FC<UserBetsPanelProps> = ({ selectedEventId })
   const [expanded, setExpanded] = useState(false);
   const [tabValue, setTabValue] = useState(0);
   
-  const { data: userBets = [] } = useBetsByUser(currentUser?.id || '');
+  const { data: userBets = [] } = useBetsByUserRealtime(currentUser?.id || '');
   const { data: allFights = [] } = useFights();
 
   // Finanzas: depósitos, retiros y balance
@@ -193,7 +193,8 @@ export const UserBetsPanel: React.FC<UserBetsPanelProps> = ({ selectedEventId })
 
   // Separar apuestas activas y historial
   const activeBets = eventBets.filter(bet => ['pending', 'matched'].includes(bet.status));
-  const historicalBets = eventBets.filter(bet => ['won', 'lost', 'rejected'].includes(bet.status));
+  // Mostrar rechazadas (reembolsadas) en historial
+  const historicalBets = eventBets.filter(bet => ['won', 'lost', 'refunded'].includes(bet.status));
 
   const totalActiveBets = activeBets.length;
   const totalHistoricalBets = historicalBets.length;
