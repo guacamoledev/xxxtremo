@@ -1,0 +1,1165 @@
+import { 
+  collection, 
+  doc, 
+  getDocs, 
+  addDoc, 
+  updateDoc, 
+  deleteDoc, 
+  query, 
+  where, 
+  orderBy, 
+  Timestamp,
+  runTransaction
+} from 'firebase/firestore';
+import { db } from '../config/firebase';
+import type { Bet, User, Fight } from '../types';
+
+// Interfaces para el nuevo algoritmo de matching
+interface BetMatch {
+  betId: string;
+  amount: number;
+  matchedAt: Timestamp;
+}
+
+interface CombinatorialMatch {
+  redBets: Array<{bet: Bet, matchedAmount: number}>;
+  greenBets: Array<{bet: Bet, matchedAmount: number}>;
+  redTotal: number;
+  greenTotal: number;
+  efficiency: number; // Número de apuestas utilizadas
+  residual: number; // Diferencia absoluta entre rojas y verdes
+}
+
+interface MatchingLog {
+  timestamp: Timestamp;
+  fightId: string;
+  algorithm: 'combinatorial' | 'greedy' | 'fallback';
+  totalBets: number;
+  redBets: number;
+  greenBets: number;
+  totalMatches: number;
+  perfectMatches: number;
+  totalResidual: number;
+  processingTime: number;
+  combinationsEvaluated?: number;
+  fallbackReason?: string;
+  details: string[];
+}
+
+// Configuración del algoritmo
+const MATCHING_CONFIG = {
+  MAX_COMBINATIONS: 10,
+  TIMEOUT_MS: 30000,
+  ENABLE_DETAILED_LOGS: true,
+} as const;
+
+export class BetService {
+  private collection = collection(db, 'bets');
+
+  // Crear nueva apuesta
+  async create(betData: Omit<Bet, 'id'>): Promise<string> {
+    const docRef = await addDoc(this.collection, {
+      ...betData,
+      creationDate: Timestamp.now(),
+    });
+    return docRef.id;
+  }
+
+  // Obtener todas las apuestas
+  async getAll(): Promise<Bet[]> {
+    const querySnapshot = await getDocs(this.collection);
+    return querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+    } as Bet));
+  }
+
+  // Obtener apuestas por pelea
+  async getByFight(fightId: string): Promise<Bet[]> {
+    const q = query(
+      this.collection,
+      where('fightId', '==', fightId),
+      orderBy('creationDate', 'desc')
+    );
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+    } as Bet));
+  }
+
+  // Obtener apuestas por usuario
+  async getByUser(userId: string): Promise<Bet[]> {
+    const q = query(
+      this.collection,
+      where('userId', '==', userId),
+      orderBy('creationDate', 'desc')
+    );
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+    } as Bet));
+  }
+
+  // Actualizar apuesta
+  async update(id: string, updates: Partial<Bet>): Promise<void> {
+    const docRef = doc(this.collection, id);
+    await updateDoc(docRef, updates);
+  }
+
+  // Eliminar apuesta
+  async delete(id: string): Promise<void> {
+    const docRef = doc(this.collection, id);
+    await deleteDoc(docRef);
+  }
+
+  // Crear apuesta con validaciones y actualización de balance
+  async placeBet(
+    userId: string, 
+    fightId: string, 
+    color: 'red' | 'green', 
+    amount: number
+  ): Promise<string> {
+    return await runTransaction(db, async (transaction) => {
+      
+      // Verificar usuario y balance
+      const userRef = doc(db, 'users', userId);
+      const userDoc = await transaction.get(userRef);
+      
+      if (!userDoc.exists()) {
+        console.error('❌ BetService.placeBet: User not found', userId);
+        throw new Error('Usuario no encontrado');
+      }
+      
+      const user = userDoc.data() as User;
+      
+      // Validaciones
+      if (amount < 100) {
+        throw new Error('La apuesta mínima es de $100 MXN');
+      }
+      
+      if (amount > user.balance) {
+        throw new Error('Saldo insuficiente');
+      }
+
+      // Verificar que la pelea permite apuestas
+      const fightRef = doc(db, 'fights', fightId);
+      const fightDoc = await transaction.get(fightRef);
+      
+      if (!fightDoc.exists()) {
+        console.error('❌ BetService.placeBet: Fight not found', fightId);
+        throw new Error('Pelea no encontrada');
+      }
+      
+      const fight = fightDoc.data() as Fight;
+      
+      if (!fight.bettingEnabled || fight.status !== 'betting_open') {
+        throw new Error('Las apuestas no están disponibles para esta pelea');
+      }
+
+      // Crear la apuesta con nueva estructura
+      const betRef = doc(collection(db, 'bets'));
+      const bet: Omit<Bet, 'id'> = {
+        userId,
+        fightId,
+        color,
+        amount,
+        originalAmount: amount, // Nuevo campo para auditoría
+        status: 'pending',
+        creationDate: Timestamp.now(),
+        matches: [], // Nuevo campo para múltiples matches
+        // Campos opcionales para compatibilidad
+        isResidual: false,
+      };
+
+      transaction.set(betRef, bet);
+
+      // Actualizar balance del usuario
+      const newBalance = user.balance - amount;
+      
+      transaction.update(userRef, {
+        balance: newBalance,
+      });
+
+      return betRef.id;
+    });
+  }
+
+  // Buscar apuestas pendientes para matching automático
+  async findMatchingBets(
+    fightId: string, 
+    color: 'red' | 'green', 
+    amount: number
+  ): Promise<Bet[]> {
+    const oppositeColor = color === 'red' ? 'green' : 'red';
+    
+    const q = query(
+      this.collection,
+      where('fightId', '==', fightId),
+      where('color', '==', oppositeColor),
+      where('status', '==', 'pending'),
+      where('amount', '>=', amount),
+      orderBy('amount', 'asc'),
+      orderBy('creationDate', 'asc')
+    );
+    
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+    } as Bet));
+  }
+
+  // Emparejar apuestas automáticamente
+  async matchBets(bet1Id: string, bet2Id: string): Promise<void> {
+    await runTransaction(db, async (transaction) => {
+      const bet1Ref = doc(this.collection, bet1Id);
+      const bet2Ref = doc(this.collection, bet2Id);
+      
+      const bet1Doc = await transaction.get(bet1Ref);
+      const bet2Doc = await transaction.get(bet2Ref);
+      
+      if (!bet1Doc.exists() || !bet2Doc.exists()) {
+        throw new Error('Una o ambas apuestas no existen');
+      }
+      
+      const bet1 = bet1Doc.data() as Bet;
+      const bet2 = bet2Doc.data() as Bet;
+      
+      // Verificar que las apuestas son válidas para emparejar
+      if (bet1.fightId !== bet2.fightId) {
+        throw new Error('Las apuestas no son de la misma pelea');
+      }
+      
+      if (bet1.color === bet2.color) {
+        throw new Error('Las apuestas son del mismo color');
+      }
+      
+      if (bet1.status !== 'pending' || bet2.status !== 'pending') {
+        throw new Error('Una o ambas apuestas ya no están pendientes');
+      }
+      
+      const matchedAmount = Math.min(bet1.amount, bet2.amount);
+      
+      // Actualizar ambas apuestas
+      transaction.update(bet1Ref, {
+        status: 'matched',
+        matchedBetId: bet2Id,
+        matchedAmount,
+      });
+      
+      transaction.update(bet2Ref, {
+        status: 'matched',
+        matchedBetId: bet1Id,
+        matchedAmount,
+      });
+      
+      // Si las apuestas no son exactamente iguales, crear apuesta residual
+      if (bet1.amount > matchedAmount) {
+        const residualBetRef = doc(collection(db, 'bets'));
+        const residualBet: Omit<Bet, 'id'> = {
+          ...bet1,
+          amount: bet1.amount - matchedAmount,
+          status: 'pending',
+          creationDate: Timestamp.now(),
+        };
+        transaction.set(residualBetRef, residualBet);
+      } else if (bet2.amount > matchedAmount) {
+        const residualBetRef = doc(collection(db, 'bets'));
+        const residualBet: Omit<Bet, 'id'> = {
+          ...bet2,
+          amount: bet2.amount - matchedAmount,
+          status: 'pending',
+          creationDate: Timestamp.now(),
+        };
+        transaction.set(residualBetRef, residualBet);
+      }
+    });
+  }
+
+  // Resolver apuestas cuando termine una pelea
+  async resolveBets(fightId: string, winner: 'red' | 'green' | null): Promise<void> {
+    const bets = await this.getByFight(fightId);
+    const matchedBets = bets.filter(bet => bet.status === 'matched');
+    
+    await runTransaction(db, async (transaction) => {
+      // FASE 1: TODAS LAS LECTURAS PRIMERO
+      const userReads = new Map();
+      const uniqueUserIds = [...new Set(matchedBets.map(bet => bet.userId))];
+      
+      // Leer todos los usuarios únicos
+      for (const userId of uniqueUserIds) {
+        const userRef = doc(db, 'users', userId);
+        const userDoc = await transaction.get(userRef);
+        if (userDoc.exists()) {
+          userReads.set(userId, {
+            ref: userRef,
+            data: userDoc.data() as User
+          });
+        }
+      }
+      
+      // FASE 2: CALCULAR TODAS LAS OPERACIONES
+      const updates = [];
+      
+      for (const bet of matchedBets) {
+        const betRef = doc(this.collection, bet.id);
+        const userInfo = userReads.get(bet.userId);
+        
+        if (!userInfo) {
+          continue;
+        }
+
+        // Calcular monto total emparejado usando la nueva estructura
+        const totalMatchedAmount = bet.matches && bet.matches.length > 0
+          ? bet.matches.reduce((sum, match) => sum + match.amount, 0)
+          : bet.matchedAmount || bet.amount; // Fallback para compatibilidad
+        
+        if (winner === null) {
+          // Empate - reembolsar apuesta
+          updates.push({
+            ref: betRef,
+            data: {
+              status: 'refunded',
+              profit: 0,
+            }
+          });
+          
+          updates.push({
+            ref: userInfo.ref,
+            data: {
+              balance: userInfo.data.balance + totalMatchedAmount,
+            }
+          });
+          
+        } else if (bet.color === winner) {
+          // Apuesta ganadora: monto + 90% del monto del perdedor
+          const profit = totalMatchedAmount * 0.9; // 90% del monto emparejado
+          const totalReturn = totalMatchedAmount + profit; // Su apuesta + ganancia
+          
+          updates.push({
+            ref: betRef,
+            data: {
+              status: 'won',
+              profit: profit,
+            }
+          });
+          
+          updates.push({
+            ref: userInfo.ref,
+            data: {
+              balance: userInfo.data.balance + totalReturn,
+            }
+          });
+          
+        } else {
+          // Apuesta perdedora
+          updates.push({
+            ref: betRef,
+            data: {
+              status: 'lost',
+              profit: 0,
+            }
+          });
+          
+          // No se actualiza el balance (ya perdió el dinero)
+        }
+      }
+      
+      // FASE 3: TODAS LAS ESCRITURAS AL FINAL
+      for (const update of updates) {
+        transaction.update(update.ref, update.data);
+      }
+      
+      // Marcar la pelea como resuelta
+      const fightRef = doc(db, 'fights', fightId);
+      transaction.update(fightRef, {
+        resolved: true
+      });
+    });
+    
+    // Invalidar React Query para que los componentes se actualicen
+    // Nota: Esto requiere acceso al queryClient. Se manejará desde el hook useResolveBets
+  }
+
+  // ===============================
+  // NUEVO ALGORITMO OPTIMIZADO DE EMPAREJAMIENTO
+  // ===============================
+
+  // Emparejar automáticamente todas las apuestas pendientes de una pelea
+  async autoMatchBets(fightId: string): Promise<void> {
+    const startTime = Date.now();
+    const log: MatchingLog = {
+      timestamp: Timestamp.now(),
+      fightId,
+      algorithm: 'combinatorial',
+      totalBets: 0,
+      redBets: 0,
+      greenBets: 0,
+      totalMatches: 0,
+      perfectMatches: 0,
+      totalResidual: 0,
+      processingTime: 0,
+      details: []
+    };
+
+    try {
+      console.log('🤝 AutoMatchBets: Starting combinatorial matching for fight', fightId);
+      log.details.push('🤝 Iniciando emparejamiento combinatorial');
+
+      // Obtener todas las apuestas pendientes
+      const pendingBets = await this.getByFight(fightId);
+      const pendingOnly = pendingBets.filter(bet => bet.status === 'pending');
+      
+      log.totalBets = pendingOnly.length;
+      log.details.push(`📊 Total apuestas pendientes: ${pendingOnly.length}`);
+
+      if (pendingOnly.length === 0) {
+        log.details.push('⚠️ No hay apuestas pendientes para emparejar');
+        console.log('⚠️ AutoMatchBets: No pending bets to match');
+        return;
+      }
+
+      // Separar apuestas por color
+      const redBets = pendingOnly.filter(bet => bet.color === 'red');
+      const greenBets = pendingOnly.filter(bet => bet.color === 'green');
+      
+      log.redBets = redBets.length;
+      log.greenBets = greenBets.length;
+      log.details.push(`🔴 Apuestas rojas: ${redBets.length}`);
+      log.details.push(`🟢 Apuestas verdes: ${greenBets.length}`);
+
+      if (redBets.length === 0 || greenBets.length === 0) {
+        log.details.push('⚠️ No hay apuestas de ambos colores para emparejar');
+        await this.refundUnmatchedBets(pendingOnly, log);
+        this.logMatchingResult(log, Date.now() - startTime);
+        return;
+      }
+
+      // Intentar algoritmo combinatorial primero
+      let matches: CombinatorialMatch[] = [];
+      let unmatchedBets: Bet[] = [];
+
+      try {
+        const result = await this.findOptimalCombinations(redBets, greenBets, log);
+        matches = result.matches;
+        unmatchedBets = result.unmatched;
+        log.algorithm = 'combinatorial';
+      } catch (error) {
+        console.warn('⚠️ AutoMatchBets: Combinatorial algorithm failed, falling back to greedy', error);
+        const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+        log.details.push(`⚠️ Algoritmo combinatorial falló: ${errorMessage}`);
+        log.fallbackReason = errorMessage;
+        
+        // Fallback a algoritmo greedy
+        const greedyResult = await this.greedyMatching(redBets, greenBets, log);
+        matches = greedyResult.matches;
+        unmatchedBets = greedyResult.unmatched;
+        log.algorithm = 'greedy';
+      }
+
+      // Ejecutar los emparejamientos en una transacción
+      if (matches.length > 0) {
+        await this.executeMatches(matches, log);
+        log.totalMatches = matches.length;
+        log.perfectMatches = matches.filter(m => m.residual === 0).length;
+      }
+
+      // Cancelar apuestas que no se pudieron emparejar
+      if (unmatchedBets.length > 0) {
+        await this.refundUnmatchedBets(unmatchedBets, log);
+      }
+
+      log.details.push(`✅ Emparejamiento completado: ${matches.length} matches, ${unmatchedBets.length} reembolsadas`);
+      
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+      log.details.push(`❌ Error en emparejamiento: ${errorMessage}`);
+      console.error('❌ AutoMatchBets: Error during matching:', error);
+      throw error;
+    } finally {
+      this.logMatchingResult(log, Date.now() - startTime);
+    }
+  }
+
+  // Reembolsar apuestas que no se pudieron emparejar (cambiar nombre y lógica)
+  private async refundUnmatchedBets(unmatchedBets: Bet[], log: MatchingLog): Promise<void> {
+    if (unmatchedBets.length === 0) return;
+
+    await runTransaction(db, async (transaction) => {
+      // Leer usuarios únicos
+      const userReads = new Map();
+      const uniqueUserIds = [...new Set(unmatchedBets.map(bet => bet.userId))];
+      
+      for (const userId of uniqueUserIds) {
+        const userRef = doc(db, 'users', userId);
+        const userDoc = await transaction.get(userRef);
+        if (userDoc.exists()) {
+          userReads.set(userId, {
+            ref: userRef,
+            data: userDoc.data() as User
+          });
+        }
+      }
+
+      // Marcar apuestas como refunded y reembolsar
+      for (const bet of unmatchedBets) {
+        const betRef = doc(this.collection, bet.id);
+        const userInfo = userReads.get(bet.userId);
+        
+        if (userInfo) {
+          // Marcar apuesta como refunded (no rechazada)
+          transaction.update(betRef, {
+            status: 'refunded',
+            profit: 0,
+          });
+          
+          // Reembolsar al usuario
+          transaction.update(userInfo.ref, {
+            balance: userInfo.data.balance + bet.amount,
+          });
+          
+          log.details.push(`💰 Reembolso: $${bet.amount} a usuario ${bet.userId} (apuesta no emparejada)`);
+        }
+      }
+    });
+
+    log.details.push(`🔄 ${unmatchedBets.length} apuestas marcadas como refunded y reembolsadas`);
+  }
+
+  // Buscar combinaciones óptimas usando algoritmo combinatorial
+  private async findOptimalCombinations(
+    redBets: Bet[], 
+    greenBets: Bet[], 
+    log: MatchingLog
+  ): Promise<{matches: CombinatorialMatch[], unmatched: Bet[]}> {
+    const startTime = Date.now();
+    let combinationsEvaluated = 0;
+    
+    // Timeout para evitar bloqueos
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('Timeout en algoritmo combinatorial')), MATCHING_CONFIG.TIMEOUT_MS);
+    });
+
+    const matchingPromise = new Promise<{matches: CombinatorialMatch[], unmatched: Bet[]}>((resolve) => {
+      // Ordenar apuestas por monto (alternando prioridad como especificado)
+      const sortedReds = [...redBets].sort((a, b) => b.amount - a.amount);
+      const sortedGreens = [...greenBets].sort((a, b) => b.amount - a.amount);
+      
+      log.details.push('🔍 Iniciando búsqueda de combinaciones óptimas');
+      log.details.push(`🔴 Apuestas rojas ordenadas: ${sortedReds.map(b => `$${b.amount}`).join(', ')}`);
+      log.details.push(`🟢 Apuestas verdes ordenadas: ${sortedGreens.map(b => `$${b.amount}`).join(', ')}`);
+      
+      const allMatches: CombinatorialMatch[] = [];
+      const usedBets = new Set<string>();
+      
+      // Alternar entre rojas y verdes como especificado
+      const alternatingBets: Array<{bet: Bet, type: 'red' | 'green'}> = [];
+      let redIndex = 0, greenIndex = 0;
+      
+      while (redIndex < sortedReds.length || greenIndex < sortedGreens.length) {
+        if (redIndex < sortedReds.length) {
+          alternatingBets.push({bet: sortedReds[redIndex], type: 'red'});
+          redIndex++;
+        }
+        if (greenIndex < sortedGreens.length) {
+          alternatingBets.push({bet: sortedGreens[greenIndex], type: 'green'});
+          greenIndex++;
+        }
+      }
+
+      // Buscar matches perfectos primero
+      for (const {bet: primaryBet, type: primaryType} of alternatingBets) {
+        if (usedBets.has(primaryBet.id)) {
+          log.details.push(`⏭️ Saltando ${primaryType} $${primaryBet.amount} (ya usada)`);
+          continue;
+        }
+        
+        log.details.push(`🎯 Procesando ${primaryType} $${primaryBet.amount} (ID: ${primaryBet.id})`);
+        
+        const oppositeColor = primaryType === 'red' ? 'green' : 'red';
+        const oppositeBets = primaryType === 'red' ? sortedGreens : sortedReds;
+        
+        // Filtrar apuestas ya usadas
+        const availableOppositeBets = oppositeBets.filter(b => !usedBets.has(b.id));
+        log.details.push(`📋 Apuestas ${oppositeColor} disponibles: ${availableOppositeBets.length}/${oppositeBets.length}`);
+        
+        if (availableOppositeBets.length === 0) {
+          log.details.push(`⚠️ No hay apuestas ${oppositeColor} disponibles`);
+          continue;
+        }
+        
+        // Buscar combinaciones que sumen exactamente el monto de la apuesta principal
+        const perfectMatch = this.findPerfectCombination(
+          primaryBet, 
+          availableOppositeBets,
+          oppositeColor,
+          log
+        );
+        
+        combinationsEvaluated++;
+        
+        if (perfectMatch) {
+          log.details.push(`✅ Match encontrado para ${primaryType} $${primaryBet.amount} con residual $${perfectMatch.residual}`);
+          
+          if (perfectMatch.residual === 0) {
+            log.details.push(`🎯 ¡MATCH PERFECTO! ${primaryType} $${primaryBet.amount} emparejado perfectamente`);
+          }
+          
+          allMatches.push(perfectMatch);
+          
+          // Marcar todas las apuestas usadas
+          usedBets.add(primaryBet.id);
+          if (primaryType === 'red') {
+            perfectMatch.greenBets.forEach(g => {
+              usedBets.add(g.bet.id);
+              log.details.push(`🔒 Marcando verde $${g.bet.amount} como usada`);
+            });
+          } else {
+            perfectMatch.redBets.forEach(r => {
+              usedBets.add(r.bet.id);
+              log.details.push(`🔒 Marcando roja $${r.bet.amount} como usada`);
+            });
+          }
+          
+        } else {
+          log.details.push(`❌ No se encontró match para ${primaryType} $${primaryBet.amount}`);
+        }
+        
+        if (Date.now() - startTime > MATCHING_CONFIG.TIMEOUT_MS - 5000) {
+          log.details.push('⏰ Acercándose al timeout, finalizando búsqueda');
+          break;
+        }
+      }
+      
+      // Obtener apuestas no emparejadas
+      const unmatchedBets = [...redBets, ...greenBets].filter(bet => !usedBets.has(bet.id));
+      
+      log.combinationsEvaluated = combinationsEvaluated;
+      log.details.push(`🧮 Combinaciones evaluadas: ${combinationsEvaluated}`);
+      log.details.push(`💎 Matches perfectos encontrados: ${allMatches.filter(m => m.residual === 0).length}`);
+      
+      resolve({matches: allMatches, unmatched: unmatchedBets});
+    });
+
+    return Promise.race([matchingPromise, timeoutPromise]) as Promise<{matches: CombinatorialMatch[], unmatched: Bet[]}>;
+  }
+
+  // Buscar combinación perfecta para una apuesta específica
+  private findPerfectCombination(
+    targetBet: Bet,
+    oppositeBets: Bet[],
+    oppositeColor: 'red' | 'green',
+    log: MatchingLog
+  ): CombinatorialMatch | null {
+    const targetAmount = targetBet.amount;
+    
+    log.details.push(`🔍 Buscando combinación para ${oppositeColor === 'green' ? 'roja' : 'verde'} $${targetAmount} (ID: ${targetBet.id})`);
+    log.details.push(`📋 Apuestas disponibles del ${oppositeColor}: ${oppositeBets.length}`);
+    
+    // Mostrar todas las apuestas disponibles
+    oppositeBets.forEach((bet, index) => {
+      log.details.push(`   [${index}] ${oppositeColor} $${bet.amount} (ID: ${bet.id})`);
+    });
+    
+    // Generar todas las combinaciones posibles (limitadas por MATCHING_CONFIG.MAX_COMBINATIONS)
+    const combinations = this.generateCombinations(oppositeBets, MATCHING_CONFIG.MAX_COMBINATIONS);
+    
+    log.details.push(`🧮 Generadas ${combinations.length} combinaciones posibles`);
+    
+    let bestMatch: CombinatorialMatch | null = null;
+    let bestScore = Infinity;
+    
+    for (let i = 0; i < combinations.length; i++) {
+      const combination = combinations[i];
+      const combinationTotal = combination.reduce((sum, bet) => sum + bet.amount, 0);
+      const residual = Math.abs(targetAmount - combinationTotal);
+      
+      // Priorizar combinaciones con menos apuestas (más eficiente) como especificado
+      const efficiency = combination.length;
+      const score = residual * 1000 + efficiency; // Residual es más importante que eficiencia
+      
+      // Debug detallado para cada combinación
+      const betDetails = combination.map(bet => `$${bet.amount}`).join(' + ');
+      log.details.push(`   Combo [${i}]: [${betDetails}] = $${combinationTotal}, residual: $${residual}, eficiencia: ${efficiency}, score: ${score}`);
+      
+      if (score < bestScore) {
+        log.details.push(`   ✅ Nueva mejor combinación! Score anterior: ${bestScore}, nuevo: ${score}`);
+        bestScore = score;
+        
+        if (oppositeColor === 'green') {
+          // Para matches donde una roja se empareja con múltiples verdes
+          const totalGreenAmount = combinationTotal;
+          const actualMatchAmount = Math.min(targetAmount, totalGreenAmount);
+          
+          bestMatch = {
+            redBets: [{bet: targetBet, matchedAmount: actualMatchAmount}],
+            greenBets: combination.map(bet => {
+              // Cada apuesta verde toma proporcionalmente del monto de la roja
+              const proportion = bet.amount / totalGreenAmount;
+              const greenMatchAmount = Math.min(bet.amount, actualMatchAmount * proportion);
+              return { bet, matchedAmount: greenMatchAmount };
+            }),
+            redTotal: actualMatchAmount,
+            greenTotal: actualMatchAmount, // Solo lo que realmente se empareja
+            efficiency,
+            residual
+          };
+        } else {
+          // Para matches donde una verde se empareja con múltiples rojas
+          const totalRedAmount = combinationTotal;
+          const actualMatchAmount = Math.min(targetAmount, totalRedAmount);
+          
+          bestMatch = {
+            redBets: combination.map(bet => {
+              // Cada apuesta roja toma proporcionalmente del monto de la verde
+              const proportion = bet.amount / totalRedAmount;
+              const redMatchAmount = Math.min(bet.amount, actualMatchAmount * proportion);
+              return { bet, matchedAmount: redMatchAmount };
+            }),
+            greenBets: [{bet: targetBet, matchedAmount: actualMatchAmount}],
+            redTotal: actualMatchAmount, // Solo lo que realmente se empareja
+            greenTotal: actualMatchAmount,
+            efficiency,
+            residual
+          };
+        }
+        
+        // Si encontramos un match perfecto, no buscar más
+        if (residual === 0) {
+          log.details.push(`🎯 ¡MATCH PERFECTO ENCONTRADO! Combinación: ${betDetails} = $${combinationTotal}`);
+          break;
+        }
+      } else {
+        log.details.push(`   ❌ Combinación rechazada. Score: ${score} > mejor: ${bestScore}`);
+      }
+    }
+    
+    if (bestMatch) {
+      log.details.push(`🏆 Mejor match encontrado: residual $${bestMatch.residual}, eficiencia ${bestMatch.efficiency}`);
+    } else {
+      log.details.push(`❌ No se encontró ninguna combinación válida para $${targetAmount}`);
+    }
+    
+    return bestMatch;
+  }
+
+  // Generar combinaciones de apuestas (algoritmo de subconjuntos)
+  private generateCombinations(bets: Bet[], maxSize: number): Bet[][] {
+    const combinations: Bet[][] = [];
+    const n = Math.min(bets.length, maxSize);
+    
+    // Generar todas las combinaciones de tamaño 1 a maxSize
+    for (let size = 1; size <= n; size++) {
+      this.generateCombinationsOfSize(bets, size, 0, [], combinations);
+    }
+    
+    return combinations;
+  }
+
+  // Generar combinaciones de un tamaño específico
+  private generateCombinationsOfSize(
+    bets: Bet[], 
+    size: number, 
+    start: number, 
+    current: Bet[], 
+    result: Bet[][]
+  ): void {
+    if (current.length === size) {
+      result.push([...current]);
+      return;
+    }
+    
+    for (let i = start; i < bets.length; i++) {
+      current.push(bets[i]);
+      this.generateCombinationsOfSize(bets, size, i + 1, current, result);
+      current.pop();
+    }
+  }
+
+  // Algoritmo greedy como fallback
+  private async greedyMatching(
+    redBets: Bet[], 
+    greenBets: Bet[], 
+    log: MatchingLog
+  ): Promise<{matches: CombinatorialMatch[], unmatched: Bet[]}> {
+    log.details.push('🔄 Ejecutando algoritmo greedy como fallback');
+    
+    const sortedReds = [...redBets].sort((a, b) => b.amount - a.amount);
+    const sortedGreens = [...greenBets].sort((a, b) => b.amount - a.amount);
+    
+    const matches: CombinatorialMatch[] = [];
+    const usedBets = new Set<string>();
+    
+    // Emparejamiento simple uno a uno
+    for (const redBet of sortedReds) {
+      if (usedBets.has(redBet.id)) continue;
+      
+      const availableGreens = sortedGreens.filter(g => !usedBets.has(g.id));
+      if (availableGreens.length === 0) break;
+      
+      const greenBet = availableGreens[0]; // Tomar la primera disponible
+      const matchAmount = Math.min(redBet.amount, greenBet.amount);
+      
+      matches.push({
+        redBets: [{bet: redBet, matchedAmount: matchAmount}],
+        greenBets: [{bet: greenBet, matchedAmount: matchAmount}],
+        redTotal: matchAmount,
+        greenTotal: matchAmount,
+        efficiency: 2,
+        residual: Math.abs(redBet.amount - greenBet.amount)
+      });
+      
+      usedBets.add(redBet.id);
+      usedBets.add(greenBet.id);
+    }
+    
+    const unmatchedBets = [...redBets, ...greenBets].filter(bet => !usedBets.has(bet.id));
+    
+    log.details.push(`🎯 Greedy matching: ${matches.length} matches, ${unmatchedBets.length} sin emparejar`);
+    
+    return {matches, unmatched: unmatchedBets};
+  }
+
+  // Ejecutar todos los matches en una transacción
+  private async executeMatches(matches: CombinatorialMatch[], log: MatchingLog): Promise<void> {
+    if (matches.length === 0) return;
+
+    await runTransaction(db, async (transaction) => {
+      // FASE 1: TODAS LAS LECTURAS PRIMERO
+      const userReads = new Map<string, { ref: any, data: User }>();
+      const uniqueUserIds = new Set<string>();
+
+      // Recopilar todos los usuarios únicos que necesitan reembolsos
+      for (const match of matches) {
+        for (const redMatch of match.redBets) {
+          const residualAmount = redMatch.bet.amount - redMatch.matchedAmount;
+          if (residualAmount > 0) {
+            uniqueUserIds.add(redMatch.bet.userId);
+          }
+        }
+        for (const greenMatch of match.greenBets) {
+          const residualAmount = greenMatch.bet.amount - greenMatch.matchedAmount;
+          if (residualAmount > 0) {
+            uniqueUserIds.add(greenMatch.bet.userId);
+          }
+        }
+      }
+
+      // Leer todos los usuarios que necesitan reembolsos
+      for (const userId of uniqueUserIds) {
+        const userRef = doc(db, 'users', userId);
+        const userDoc = await transaction.get(userRef);
+        
+        if (userDoc.exists()) {
+          userReads.set(userId, {
+            ref: userRef,
+            data: userDoc.data() as User
+          });
+        }
+      }
+
+      // FASE 2: TODAS LAS ESCRITURAS DESPUÉS
+      for (const match of matches) {
+        await this.executeCombinatorialMatchWrites(transaction, match, userReads, log);
+      }
+    });
+  }
+
+  // Ejecutar solo las escrituras de un match combinatorial específico
+  private async executeCombinatorialMatchWrites(
+    transaction: any, 
+    match: CombinatorialMatch, 
+    userReads: Map<string, { ref: any, data: User }>,
+    log: MatchingLog
+  ): Promise<void> {
+    const matchId = `match_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const matchTimestamp = Timestamp.now();
+
+    // Recopilar información de usuarios para reembolsos
+    const userReimbursements = new Map<string, number>();
+
+    // Procesar apuestas rojas
+    for (const redMatch of match.redBets) {
+      const betRef = doc(this.collection, redMatch.bet.id);
+      
+      const newMatch: BetMatch = {
+        betId: matchId,
+        amount: redMatch.matchedAmount,
+        matchedAt: matchTimestamp
+      };
+
+      // Siempre modificar la apuesta original con el monto emparejado
+      transaction.update(betRef, {
+        status: 'matched',
+        matches: [...(redMatch.bet.matches || []), newMatch],
+        amount: redMatch.matchedAmount // Actualizar al monto emparejado
+      });
+
+      // Si hay residual, calcular reembolso directo
+      const residualAmount = redMatch.bet.amount - redMatch.matchedAmount;
+      if (residualAmount > 0) {
+        const currentReimbursement = userReimbursements.get(redMatch.bet.userId) || 0;
+        userReimbursements.set(redMatch.bet.userId, currentReimbursement + residualAmount);
+        log.details.push(`💰 Reembolso directo rojo: $${residualAmount} a usuario ${redMatch.bet.userId}`);
+      }
+    }
+
+    // Procesar apuestas verdes (misma lógica)
+    for (const greenMatch of match.greenBets) {
+      const betRef = doc(this.collection, greenMatch.bet.id);
+      
+      const newMatch: BetMatch = {
+        betId: matchId,
+        amount: greenMatch.matchedAmount,
+        matchedAt: matchTimestamp
+      };
+
+      // Siempre modificar la apuesta original con el monto emparejado
+      transaction.update(betRef, {
+        status: 'matched',
+        matches: [...(greenMatch.bet.matches || []), newMatch],
+        amount: greenMatch.matchedAmount // Actualizar al monto emparejado
+      });
+
+      // Si hay residual, calcular reembolso directo
+      const residualAmount = greenMatch.bet.amount - greenMatch.matchedAmount;
+      if (residualAmount > 0) {
+        const currentReimbursement = userReimbursements.get(greenMatch.bet.userId) || 0;
+        userReimbursements.set(greenMatch.bet.userId, currentReimbursement + residualAmount);
+        log.details.push(`💰 Reembolso directo verde: $${residualAmount} a usuario ${greenMatch.bet.userId}`);
+      }
+    }
+
+    // Procesar todos los reembolsos directos usando los datos ya leídos
+    for (const [userId, reimbursementAmount] of userReimbursements) {
+      const userInfo = userReads.get(userId);
+      
+      if (userInfo) {
+        transaction.update(userInfo.ref, {
+          balance: userInfo.data.balance + reimbursementAmount
+        });
+        log.details.push(`✅ Reembolso procesado: $${reimbursementAmount} a usuario ${userId}`);
+      }
+    }
+
+    log.details.push(`✅ Match ejecutado: ${match.redBets.length} rojas vs ${match.greenBets.length} verdes (residual total: $${match.residual})`);
+  }
+
+  // Registrar resultado del matching para debugging
+  private logMatchingResult(log: MatchingLog, processingTime: number): void {
+    transaction: any, 
+    match: CombinatorialMatch, 
+    log: MatchingLog
+  ): Promise<void> {
+    const matchId = `match_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const matchTimestamp = Timestamp.now();
+
+    // Recopilar información de usuarios para reembolsos
+    const userReimbursements = new Map<string, number>();
+
+    // Procesar apuestas rojas
+    for (const redMatch of match.redBets) {
+      const betRef = doc(this.collection, redMatch.bet.id);
+      
+      const newMatch: BetMatch = {
+        betId: matchId,
+        amount: redMatch.matchedAmount,
+        matchedAt: matchTimestamp
+      };
+
+      // Siempre modificar la apuesta original con el monto emparejado
+      transaction.update(betRef, {
+        status: 'matched',
+        matches: [...(redMatch.bet.matches || []), newMatch],
+        amount: redMatch.matchedAmount // Actualizar al monto emparejado
+      });
+
+      // Si hay residual, calcular reembolso directo (no crear apuesta residual)
+      const residualAmount = redMatch.bet.amount - redMatch.matchedAmount;
+      if (residualAmount > 0) {
+        const currentReimbursement = userReimbursements.get(redMatch.bet.userId) || 0;
+        userReimbursements.set(redMatch.bet.userId, currentReimbursement + residualAmount);
+        log.details.push(`� Reembolso directo rojo: $${residualAmount} a usuario ${redMatch.bet.userId}`);
+      }
+    }
+
+    // Procesar apuestas verdes (misma lógica)
+    for (const greenMatch of match.greenBets) {
+      const betRef = doc(this.collection, greenMatch.bet.id);
+      
+      const newMatch: BetMatch = {
+        betId: matchId,
+        amount: greenMatch.matchedAmount,
+        matchedAt: matchTimestamp
+      };
+
+      // Siempre modificar la apuesta original con el monto emparejado
+      transaction.update(betRef, {
+        status: 'matched',
+        matches: [...(greenMatch.bet.matches || []), newMatch],
+        amount: greenMatch.matchedAmount // Actualizar al monto emparejado
+      });
+
+      // Si hay residual, calcular reembolso directo
+      const residualAmount = greenMatch.bet.amount - greenMatch.matchedAmount;
+      if (residualAmount > 0) {
+        const currentReimbursement = userReimbursements.get(greenMatch.bet.userId) || 0;
+        userReimbursements.set(greenMatch.bet.userId, currentReimbursement + residualAmount);
+        log.details.push(`💰 Reembolso directo verde: $${residualAmount} a usuario ${greenMatch.bet.userId}`);
+      }
+    }
+
+    // Procesar todos los reembolsos directos
+    // PRIMERO: leer todos los usuarios (todas las lecturas juntas)
+    const userReads = new Map<string, { ref: any, data: User }>();
+    for (const [userId] of userReimbursements) {
+      const userRef = doc(db, 'users', userId);
+      const userDoc = await transaction.get(userRef);
+      
+      if (userDoc.exists()) {
+        userReads.set(userId, {
+          ref: userRef,
+          data: userDoc.data() as User
+        });
+      }
+    }
+
+    // DESPUÉS: escribir todos los reembolsos (todas las escrituras juntas)
+    for (const [userId, reimbursementAmount] of userReimbursements) {
+      const userInfo = userReads.get(userId);
+      
+      if (userInfo) {
+        transaction.update(userInfo.ref, {
+          balance: userInfo.data.balance + reimbursementAmount
+        });
+        log.details.push(`✅ Reembolso procesado: $${reimbursementAmount} a usuario ${userId}`);
+      }
+    }
+
+    log.details.push(`✅ Match ejecutado: ${match.redBets.length} rojas vs ${match.greenBets.length} verdes (residual total: $${match.residual})`);
+  }
+
+  // Registrar resultado del matching para debugging
+  private logMatchingResult(log: MatchingLog, processingTime: number): void {
+    log.processingTime = processingTime;
+    log.totalResidual = 0; // Se calculará si es necesario
+
+    if (MATCHING_CONFIG.ENABLE_DETAILED_LOGS) {
+      console.log('📊 ===== MATCHING RESULT =====');
+      console.log(`🎯 Fight ID: ${log.fightId}`);
+      console.log(`🧮 Algorithm: ${log.algorithm}`);
+      console.log(`⏱️ Processing time: ${log.processingTime}ms`);
+      console.log(`📈 Total bets: ${log.totalBets} (${log.redBets} red, ${log.greenBets} green)`);
+      console.log(`🤝 Matches: ${log.totalMatches} (${log.perfectMatches} perfect)`);
+      if (log.combinationsEvaluated) {
+        console.log(`🔍 Combinations evaluated: ${log.combinationsEvaluated}`);
+      }
+      if (log.fallbackReason) {
+        console.log(`⚠️ Fallback reason: ${log.fallbackReason}`);
+      }
+      console.log('📝 Details:');
+      log.details.forEach(detail => console.log(`   ${detail}`));
+      console.log('===========================');
+    }
+  }
+
+  // Cancelar apuesta (solo si está pendiente)
+  async cancelBet(betId: string): Promise<void> {
+    await runTransaction(db, async (transaction) => {
+      const betRef = doc(this.collection, betId);
+      const betDoc = await transaction.get(betRef);
+      
+      if (!betDoc.exists()) {
+        throw new Error('Apuesta no encontrada');
+      }
+      
+      const bet = betDoc.data() as Bet;
+      
+      if (bet.status !== 'pending') {
+        throw new Error('Solo se pueden cancelar apuestas pendientes');
+      }
+      
+      // Devolver dinero al usuario
+      const userRef = doc(db, 'users', bet.userId);
+      const userDoc = await transaction.get(userRef);
+      
+      if (userDoc.exists()) {
+        const user = userDoc.data() as User;
+        transaction.update(userRef, {
+          balance: user.balance + bet.amount,
+        });
+      }
+      
+      // Marcar apuesta como reembolsada
+      transaction.update(betRef, {
+        status: 'refunded',
+      });
+    });
+  }
+
+  // ===============================
+  // FUNCIONES AUXILIARES ADICIONALES
+  // ===============================
+
+  // Cancelar todas las apuestas pendientes de una pelea (admin function)
+  async cancelAllPendingBets(fightId: string): Promise<void> {
+    const pendingBets = await this.getByFight(fightId);
+    const pendingOnly = pendingBets.filter(bet => bet.status === 'pending');
+    
+    if (pendingOnly.length === 0) {
+      console.log('⚠️ cancelAllPendingBets: No pending bets found for fight', fightId);
+      return;
+    }
+
+    const log: MatchingLog = {
+      timestamp: Timestamp.now(),
+      fightId,
+      algorithm: 'fallback',
+      totalBets: pendingOnly.length,
+      redBets: pendingOnly.filter(b => b.color === 'red').length,
+      greenBets: pendingOnly.filter(b => b.color === 'green').length,
+      totalMatches: 0,
+      perfectMatches: 0,
+      totalResidual: 0,
+      processingTime: 0,
+      details: [`🚫 Cancelando todas las apuestas pendientes: ${pendingOnly.length} apuestas`]
+    };
+
+    await this.refundUnmatchedBets(pendingOnly, log);
+    console.log(`✅ cancelAllPendingBets: Cancelled ${pendingOnly.length} pending bets for fight ${fightId}`);
+  }
+
+  // Obtener estadísticas de emparejamiento para debugging
+  async getMatchingStats(fightId: string): Promise<{
+    total: number;
+    pending: number;
+    matched: number;
+    refunded: number;
+    redTotal: number;
+    greenTotal: number;
+    efficiency: number;
+  }> {
+    const bets = await this.getByFight(fightId);
+    
+    const stats = {
+      total: bets.length,
+      pending: bets.filter(b => b.status === 'pending').length,
+      matched: bets.filter(b => b.status === 'matched').length,
+      refunded: bets.filter(b => b.status === 'refunded').length,
+      redTotal: bets.filter(b => b.color === 'red').reduce((sum, b) => sum + b.amount, 0),
+      greenTotal: bets.filter(b => b.color === 'green').reduce((sum, b) => sum + b.amount, 0),
+      efficiency: 0
+    };
+
+    // Calcular eficiencia del emparejamiento
+    if (stats.total > 0) {
+      stats.efficiency = (stats.matched / stats.total) * 100;
+    }
+
+    return stats;
+  }
+}
+
+export const betService = new BetService();

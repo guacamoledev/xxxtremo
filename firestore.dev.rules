@@ -1,0 +1,12 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // DESARROLLO - Reglas permisivas para testing
+    // ⚠️ NO USAR EN PRODUCCIÓN ⚠️
+    
+    match /{document=**} {
+      // Permitir todas las operaciones para usuarios autenticados
+      allow read, write: if request.auth != null;
+    }
+  }
+}

@@ -1,0 +1,680 @@
+import React, { useState } from 'react';
+import {
+  Box,
+  Typography,
+  Container,
+  Paper,
+  Card,
+  CardContent,
+  Button,
+  Alert,
+  Tab,
+  Tabs,
+  Avatar,
+  Chip,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  InputAdornment,
+  Divider,
+} from '@mui/material';
+import {
+  AccountBalance,
+  TrendingUp,
+  TrendingDown,
+  Add,
+  Remove,
+  History,
+  Upload,
+  Warning,
+  CheckCircle,
+} from '@mui/icons-material';
+import { useAuth } from '../contexts/AuthContext';
+import { 
+  useCreateDeposit, 
+  useCreateWithdrawal, 
+  useUserTransactions 
+} from '../hooks/useUserFinances';
+import dayjs from 'dayjs';
+
+interface TabPanelProps {
+  children?: React.ReactNode;
+  index: number;
+  value: number;
+}
+
+function TabPanel(props: TabPanelProps) {
+  const { children, value, index, ...other } = props;
+
+  return (
+    <div
+      role="tabpanel"
+      hidden={value !== index}
+      id={`simple-tabpanel-${index}`}
+      aria-labelledby={`simple-tab-${index}`}
+      {...other}
+    >
+      {value === index && (
+        <Box sx={{ p: 3 }}>
+          {children}
+        </Box>
+      )}
+    </div>
+  );
+}
+
+const FinancesPage: React.FC = () => {
+  const { currentUser } = useAuth();
+  const [currentTab, setCurrentTab] = useState(0);
+  const [depositDialogOpen, setDepositDialogOpen] = useState(false);
+  const [withdrawDialogOpen, setWithdrawDialogOpen] = useState(false);
+  
+  // Hooks para transacciones
+  const createDepositMutation = useCreateDeposit();
+  const createWithdrawalMutation = useCreateWithdrawal();
+  const { data: transactions = [], isLoading: transactionsLoading } = useUserTransactions();
+  
+  // Estados para formularios
+  const [depositForm, setDepositForm] = useState({
+    amount: '',
+    bankReference: '',
+    receipt: null as File | null
+  });
+  
+  const [withdrawForm, setWithdrawForm] = useState({
+    amount: '',
+    bank: '',
+    accountNumber: '',
+    clabe: '',
+    holderName: ''
+  });
+
+  const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
+    setCurrentTab(newValue);
+  };
+
+  const handleDepositSubmit = async () => {
+    try {
+      if (!depositForm.amount || !depositForm.bankReference) {
+        alert('Por favor completa todos los campos requeridos');
+        return;
+      }
+
+      await createDepositMutation.mutateAsync({
+        amount: parseFloat(depositForm.amount),
+        method: 'Transferencia Bancaria',
+        reference: depositForm.bankReference,
+        receipt: depositForm.receipt || undefined
+      });
+
+      // Éxito
+      alert('¡Depósito enviado! Será revisado por nuestro equipo.');
+      setDepositDialogOpen(false);
+      setDepositForm({ amount: '', bankReference: '', receipt: null });
+    } catch (error) {
+      console.error('Error creating deposit:', error);
+      alert('Error al enviar el depósito. Inténtalo de nuevo.');
+    }
+  };
+
+  const handleWithdrawSubmit = async () => {
+    try {
+      if (!withdrawForm.amount || !withdrawForm.bank || !withdrawForm.accountNumber || !withdrawForm.clabe || !withdrawForm.holderName) {
+        alert('Por favor completa todos los campos requeridos');
+        return;
+      }
+
+      await createWithdrawalMutation.mutateAsync({
+        amount: parseFloat(withdrawForm.amount),
+        bankAccount: `${withdrawForm.bank} - ${withdrawForm.accountNumber}`,
+        clabe: withdrawForm.clabe,
+        holderName: withdrawForm.holderName
+      });
+
+      // Éxito
+      alert('¡Retiro solicitado! Será procesado en máximo 48 horas.');
+      setWithdrawDialogOpen(false);
+      setWithdrawForm({ amount: '', bank: '', accountNumber: '', clabe: '', holderName: '' });
+    } catch (error: any) {
+      console.error('Error creating withdrawal:', error);
+      alert(error.message || 'Error al solicitar el retiro. Inténtalo de nuevo.');
+    }
+  };
+    console.log('Withdraw:', withdrawForm);
+    setWithdrawDialogOpen(false);
+    setWithdrawForm({ amount: '', bank: '', accountNumber: '', clabe: '', holderName: '' });
+  };
+
+  const getTransactionIcon = (type: string) => {
+    switch (type) {
+      case 'deposit': return <TrendingUp color="success" />;
+      case 'withdrawal': return <TrendingDown color="error" />;
+      case 'bet': return <Remove color="warning" />;
+      case 'win': return <Add color="success" />;
+      default: return <History />;
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'approved':
+      case 'completed': return 'success';
+      case 'pending': return 'warning';
+      case 'rejected': return 'error';
+      default: return 'default';
+    }
+  };
+
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case 'approved': return 'Aprobado';
+      case 'completed': return 'Completado';
+      case 'pending': return 'Pendiente';
+      case 'rejected': return 'Rechazado';
+      case 'processed': return 'Procesado';
+      default: return status;
+    }
+  };
+
+  if (!currentUser) {
+    return (
+      <Container maxWidth="lg">
+        <Box sx={{ my: 4 }}>
+          <Alert severity="warning">
+            Debes iniciar sesión para acceder a tus finanzas.
+          </Alert>
+        </Box>
+      </Container>
+    );
+  }
+
+  return (
+    <Container maxWidth="lg">
+      <Box sx={{ my: 4 }}>
+        {/* Header */}
+        <Typography variant="h4" component="h1" gutterBottom>
+          💰 Finanzas
+        </Typography>
+        <Typography variant="subtitle1" color="text.secondary" gutterBottom>
+          Gestiona tus depósitos, retiros y historial financiero
+        </Typography>
+
+        {/* Resumen de cuenta */}
+        <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 3, mb: 4 }}>
+          <Box sx={{ flex: 1 }}>
+            <Card sx={{ background: 'linear-gradient(45deg, #1976d2 30%, #42a5f5 90%)' }}>
+              <CardContent>
+                <Box sx={{ display: 'flex', alignItems: 'center', color: 'white' }}>
+                  <Avatar sx={{ bgcolor: 'rgba(255,255,255,0.2)', mr: 2 }}>
+                    <AccountBalance />
+                  </Avatar>
+                  <Box>
+                    <Typography variant="h4" fontWeight="bold">
+                      ${currentUser.balance.toLocaleString()} MXN
+                    </Typography>
+                    <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                      Saldo Disponible
+                    </Typography>
+                  </Box>
+                </Box>
+              </CardContent>
+            </Card>
+          </Box>
+
+          <Box sx={{ flex: 1 }}>
+            <Card>
+              <CardContent>
+                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                  <Avatar sx={{ bgcolor: 'success.main', mr: 2 }}>
+                    <TrendingUp />
+                  </Avatar>
+                  <Box>
+                    <Typography variant="h5" fontWeight="medium">
+                      ${currentUser.totalDeposited.toLocaleString()} MXN
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Total Depositado
+                    </Typography>
+                  </Box>
+                </Box>
+              </CardContent>
+            </Card>
+          </Box>
+
+          <Box sx={{ flex: 1 }}>
+            <Card>
+              <CardContent>
+                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                  <Avatar sx={{ bgcolor: 'warning.main', mr: 2 }}>
+                    <TrendingDown />
+                  </Avatar>
+                  <Box>
+                    <Typography variant="h5" fontWeight="medium">
+                      ${currentUser.totalBet.toLocaleString()} MXN
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Total Apostado
+                    </Typography>
+                  </Box>
+                </Box>
+              </CardContent>
+            </Card>
+          </Box>
+        </Box>
+
+        {/* Estado de elegibilidad para retiros */}
+        <Alert 
+          severity={currentUser.withdrawalEligible ? "success" : "warning"} 
+          sx={{ mb: 3 }}
+          icon={currentUser.withdrawalEligible ? <CheckCircle /> : <Warning />}
+        >
+          {currentUser.withdrawalEligible ? (
+            "✅ Eres elegible para realizar retiros. Has apostado el 100% de tus depósitos."
+          ) : (
+            `⚠️ Debes apostar ${((currentUser.totalDeposited - currentUser.totalBet)).toLocaleString()} MXN más para poder retirar dinero.`
+          )}
+        </Alert>
+
+        {/* Pestañas principales */}
+        <Paper sx={{ width: '100%' }}>
+          <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
+            <Tabs value={currentTab} onChange={handleTabChange}>
+              <Tab label="Resumen" icon={<AccountBalance />} />
+              <Tab label="Depósitos" icon={<TrendingUp />} />
+              <Tab label="Retiros" icon={<TrendingDown />} />
+              <Tab label="Historial" icon={<History />} />
+            </Tabs>
+          </Box>
+
+          {/* Tab 0: Resumen */}
+          <TabPanel value={currentTab} index={0}>
+            <Box>
+              <Typography variant="h6" gutterBottom>
+                Acciones Rápidas
+              </Typography>
+              
+              <Box sx={{ display: 'flex', gap: 2, mb: 4, flexWrap: 'wrap' }}>
+                <Button
+                  variant="contained"
+                  startIcon={<Add />}
+                  onClick={() => setDepositDialogOpen(true)}
+                  size="large"
+                  sx={{ minWidth: 150 }}
+                >
+                  Depositar
+                </Button>
+                
+                <Button
+                  variant="outlined"
+                  startIcon={<Remove />}
+                  onClick={() => setWithdrawDialogOpen(true)}
+                  disabled={!currentUser.withdrawalEligible}
+                  size="large"
+                  sx={{ minWidth: 150 }}
+                >
+                  Retirar
+                </Button>
+              </Box>
+
+              <Divider sx={{ my: 3 }} />
+
+              <Typography variant="h6" gutterBottom>
+                Información Bancaria
+              </Typography>
+              
+              <Paper sx={{ p: 3, bgcolor: 'grey.50' }}>
+                <Typography variant="subtitle1" fontWeight="medium" gutterBottom>
+                  Datos para Depósitos
+                </Typography>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                  <Typography variant="body2">
+                    <strong>Banco:</strong> Banregio
+                  </Typography>
+                  <Typography variant="body2">
+                    <strong>Tarjeta:</strong> 4741 7406 0220 7885
+                  </Typography>
+                  <Typography variant="body2">
+                    <strong>CLABE:</strong> 058320000000893020
+                  </Typography>
+                  <Typography variant="body2">
+                    <strong>Beneficiario:</strong> XXXTREMO
+                  </Typography>
+                </Box>
+                
+                <Alert severity="info" sx={{ mt: 2 }}>
+                  Realiza tu transferencia a esta cuenta y sube el comprobante para procesar tu depósito.
+                </Alert>
+              </Paper>
+            </Box>
+          </TabPanel>
+
+          {/* Tab 1: Depósitos */}
+          <TabPanel value={currentTab} index={1}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+              <Typography variant="h6">
+                Gestión de Depósitos
+              </Typography>
+              <Button
+                variant="contained"
+                startIcon={<Add />}
+                onClick={() => setDepositDialogOpen(true)}
+              >
+                Nuevo Depósito
+              </Button>
+            </Box>
+
+            <Alert severity="info" sx={{ mb: 3 }}>
+              <Typography variant="body2">
+                <strong>Proceso de depósito:</strong>
+              </Typography>
+              <Typography variant="body2">
+                1. Realiza la transferencia a nuestra cuenta bancaria
+              </Typography>
+              <Typography variant="body2">
+                2. Sube el comprobante y llena el formulario
+              </Typography>
+              <Typography variant="body2">
+                3. Espera la aprobación (máximo 24 horas)
+              </Typography>
+            </Alert>
+
+            {/* Lista de depósitos - aquí iría el contenido real */}
+            <Paper>
+              <Box sx={{ p: 3, textAlign: 'center' }}>
+                <Typography variant="body1" color="text.secondary">
+                  Tus depósitos aparecerán aquí una vez que los realices.
+                </Typography>
+              </Box>
+            </Paper>
+          </TabPanel>
+
+          {/* Tab 2: Retiros */}
+          <TabPanel value={currentTab} index={2}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+              <Typography variant="h6">
+                Gestión de Retiros
+              </Typography>
+              <Button
+                variant="contained"
+                startIcon={<Remove />}
+                onClick={() => setWithdrawDialogOpen(true)}
+                disabled={!currentUser.withdrawalEligible}
+              >
+                Nuevo Retiro
+              </Button>
+            </Box>
+
+            <Alert severity="warning" sx={{ mb: 3 }}>
+              <Typography variant="body2">
+                <strong>Información importante sobre retiros:</strong>
+              </Typography>
+              <Typography variant="body2">
+                • Comisión del 1% sobre el monto retirado
+              </Typography>
+              <Typography variant="body2">
+                • Tiempo de procesamiento: hasta 48 horas
+              </Typography>
+              <Typography variant="body2">
+                • Debes haber apostado el 100% de tus depósitos
+              </Typography>
+            </Alert>
+
+            {/* Lista de retiros - aquí iría el contenido real */}
+            <Paper>
+              <Box sx={{ p: 3, textAlign: 'center' }}>
+                <Typography variant="body1" color="text.secondary">
+                  Tus retiros aparecerán aquí una vez que los solicites.
+                </Typography>
+              </Box>
+            </Paper>
+          </TabPanel>
+
+          {/* Tab 3: Historial */}
+          <TabPanel value={currentTab} index={3}>
+            <Typography variant="h6" gutterBottom>
+              Historial de Transacciones
+            </Typography>
+
+            <TableContainer component={Paper}>
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Tipo</TableCell>
+                    <TableCell>Fecha</TableCell>
+                    <TableCell align="right">Monto</TableCell>
+                    <TableCell>Estado</TableCell>
+                    <TableCell>Referencia</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {transactions.map((transaction) => (
+                    <TableRow key={transaction.id}>
+                      <TableCell>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          {getTransactionIcon(transaction.type)}
+                          <Typography variant="body2" sx={{ textTransform: 'capitalize' }}>
+                            {transaction.type === 'deposit' ? 'Depósito' : 
+                             transaction.type === 'withdrawal' ? 'Retiro' :
+                             transaction.type === 'bet' ? 'Apuesta' : 
+                             'Ganancia'}
+                          </Typography>
+                        </Box>
+                      </TableCell>
+                      <TableCell>
+                        {dayjs(transaction.date).format('DD/MM/YYYY HH:mm')}
+                      </TableCell>
+                      <TableCell align="right">
+                        <Typography 
+                          variant="body2" 
+                          color={transaction.type === 'withdrawal' || transaction.type === 'bet' ? 'error.main' : 'success.main'}
+                          fontWeight="medium"
+                        >
+                          {transaction.type === 'withdrawal' || transaction.type === 'bet' ? '-' : '+'}
+                          ${transaction.amount.toLocaleString()} MXN
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Chip
+                          label={getStatusLabel(transaction.status)}
+                          color={getStatusColor(transaction.status)}
+                          size="small"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2" fontFamily="monospace">
+                          {transaction.reference}
+                        </Typography>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </TabPanel>
+        </Paper>
+
+        {/* Dialog de Depósito */}
+        <Dialog open={depositDialogOpen} onClose={() => setDepositDialogOpen(false)} maxWidth="sm" fullWidth>
+          <DialogTitle>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <TrendingUp />
+              Nuevo Depósito
+            </Box>
+          </DialogTitle>
+          <DialogContent>
+            <Alert severity="info" sx={{ mb: 3 }}>
+              Primero realiza la transferencia a nuestra cuenta y luego llena este formulario.
+            </Alert>
+            
+            <TextField
+              autoFocus
+              margin="dense"
+              label="Monto"
+              type="number"
+              fullWidth
+              variant="outlined"
+              value={depositForm.amount}
+              onChange={(e) => setDepositForm({...depositForm, amount: e.target.value})}
+              InputProps={{
+                startAdornment: <InputAdornment position="start">$</InputAdornment>,
+                endAdornment: <InputAdornment position="end">MXN</InputAdornment>,
+              }}
+              sx={{ mb: 2 }}
+            />
+            
+            <TextField
+              margin="dense"
+              label="Referencia Bancaria"
+              type="text"
+              fullWidth
+              variant="outlined"
+              value={depositForm.bankReference}
+              onChange={(e) => setDepositForm({...depositForm, bankReference: e.target.value})}
+              placeholder="Ej: TR123456789"
+              sx={{ mb: 2 }}
+            />
+            
+            <Button
+              variant="outlined"
+              component="label"
+              startIcon={<Upload />}
+              fullWidth
+              sx={{ mb: 2, py: 1.5 }}
+            >
+              Subir Comprobante
+              <input
+                type="file"
+                hidden
+                accept="image/*,.pdf"
+                onChange={(e) => setDepositForm({...depositForm, receipt: e.target.files?.[0] || null})}
+              />
+            </Button>
+            
+            {depositForm.receipt && (
+              <Alert severity="success" sx={{ mb: 2 }}>
+                Archivo seleccionado: {depositForm.receipt.name}
+              </Alert>
+            )}
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setDepositDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button 
+              onClick={handleDepositSubmit} 
+              variant="contained"
+              disabled={!depositForm.amount || !depositForm.bankReference || !depositForm.receipt}
+            >
+              Enviar Solicitud
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Dialog de Retiro */}
+        <Dialog open={withdrawDialogOpen} onClose={() => setWithdrawDialogOpen(false)} maxWidth="sm" fullWidth>
+          <DialogTitle>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <TrendingDown />
+              Nuevo Retiro
+            </Box>
+          </DialogTitle>
+          <DialogContent>
+            <Alert severity="warning" sx={{ mb: 3 }}>
+              Se cobrará una comisión del 1% sobre el monto retirado. Tiempo de procesamiento: hasta 48 horas.
+            </Alert>
+            
+            <TextField
+              autoFocus
+              margin="dense"
+              label="Monto a Retirar"
+              type="number"
+              fullWidth
+              variant="outlined"
+              value={withdrawForm.amount}
+              onChange={(e) => setWithdrawForm({...withdrawForm, amount: e.target.value})}
+              InputProps={{
+                startAdornment: <InputAdornment position="start">$</InputAdornment>,
+                endAdornment: <InputAdornment position="end">MXN</InputAdornment>,
+              }}
+              helperText={`Disponible: $${currentUser.balance.toLocaleString()} MXN`}
+              sx={{ mb: 2 }}
+            />
+            
+            <TextField
+              margin="dense"
+              label="Banco"
+              fullWidth
+              variant="outlined"
+              value={withdrawForm.bank}
+              onChange={(e) => setWithdrawForm({...withdrawForm, bank: e.target.value})}
+              sx={{ mb: 2 }}
+            />
+            
+            <TextField
+              margin="dense"
+              label="Número de Cuenta"
+              fullWidth
+              variant="outlined"
+              value={withdrawForm.accountNumber}
+              onChange={(e) => setWithdrawForm({...withdrawForm, accountNumber: e.target.value})}
+              sx={{ mb: 2 }}
+            />
+            
+            <TextField
+              margin="dense"
+              label="CLABE (Opcional)"
+              fullWidth
+              variant="outlined"
+              value={withdrawForm.clabe}
+              onChange={(e) => setWithdrawForm({...withdrawForm, clabe: e.target.value})}
+              sx={{ mb: 2 }}
+            />
+            
+            <TextField
+              margin="dense"
+              label="Nombre del Titular"
+              fullWidth
+              variant="outlined"
+              value={withdrawForm.holderName}
+              onChange={(e) => setWithdrawForm({...withdrawForm, holderName: e.target.value})}
+              sx={{ mb: 2 }}
+            />
+            
+            {withdrawForm.amount && (
+              <Alert severity="info">
+                <Typography variant="body2">
+                  Comisión (1%): ${(parseFloat(withdrawForm.amount) * 0.01).toFixed(2)} MXN
+                </Typography>
+                <Typography variant="body2">
+                  <strong>Recibirás: ${(parseFloat(withdrawForm.amount) * 0.99).toFixed(2)} MXN</strong>
+                </Typography>
+              </Alert>
+            )}
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setWithdrawDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button 
+              onClick={handleWithdrawSubmit} 
+              variant="contained"
+              disabled={!withdrawForm.amount || !withdrawForm.bank || !withdrawForm.accountNumber || !withdrawForm.holderName}
+            >
+              Solicitar Retiro
+            </Button>
+          </DialogActions>
+        </Dialog>
+      </Box>
+    </Container>
+  );
+};
+
+export default FinancesPage;

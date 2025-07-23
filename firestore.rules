@@ -1,0 +1,128 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && 
+             resource.data.role == 'admin';
+    }
+    
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+    
+    function isUserAdmin() {
+      return isAuthenticated() && 
+             getUserData().role == 'admin';
+    }
+    
+    function isUserFinance() {
+      return isAuthenticated() && 
+             (getUserData().role == 'finance' || getUserData().role == 'admin');
+    }
+    
+    function isUserStreaming() {
+      return isAuthenticated() && 
+             (getUserData().role == 'streaming' || getUserData().role == 'admin');
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    // Users collection
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && request.auth.uid == userId;
+      allow update: if isOwner(userId) || isUserAdmin() || isUserFinance();
+      allow delete: if isUserAdmin();
+    }
+    
+    // Palenques collection - Admin only for CUD, read for authenticated users
+    match /palenques/{palenqueId} {
+      allow read: if isAuthenticated();
+      allow create, update, delete: if isUserAdmin();
+    }
+    
+    // Events collection - Admin and Streaming for CUD, read for authenticated users
+    match /events/{eventId} {
+      allow read: if isAuthenticated();
+      allow create, update, delete: if isUserAdmin() || isUserStreaming();
+    }
+    
+    // Fights collection - Admin and Streaming for CUD, read for authenticated users
+    match /fights/{fightId} {
+      allow read: if isAuthenticated();
+      allow create, update, delete: if isUserAdmin() || isUserStreaming();
+    }
+    
+    // Bets collection
+    match /bets/{betId} {
+      allow read: if isAuthenticated() && 
+                     (isOwner(resource.data.userId) || isUserAdmin() || isUserFinance());
+      allow list: if isAuthenticated() && (isUserAdmin() || isUserFinance());
+      allow create: if isAuthenticated() && 
+                       request.resource.data.userId == request.auth.uid;
+      allow update: if isUserAdmin() || isUserFinance();
+      allow delete: if isUserAdmin();
+    }
+    
+    // Deposits collection
+    match /deposits/{depositId} {
+      allow read: if isAuthenticated() && 
+                     (isOwner(resource.data.userId) || isUserFinance());
+      allow create: if isAuthenticated() && 
+                       isOwner(request.resource.data.userId);
+      allow update: if isUserFinance();
+      allow delete: if isUserAdmin();
+    }
+    
+    // Withdrawals collection
+    match /withdrawals/{withdrawalId} {
+      allow read: if isAuthenticated() && 
+                     (isOwner(resource.data.userId) || isUserFinance());
+      allow create: if isAuthenticated() && 
+                       isOwner(request.resource.data.userId);
+      allow update: if isUserFinance();
+      allow delete: if isUserAdmin();
+    }
+    
+    // Transactions collection
+    match /transactions/{transactionId} {
+      allow read: if isAuthenticated() && 
+                     (isOwner(resource.data.userId) || isUserFinance());
+      allow create, update: if isUserFinance() || isUserAdmin();
+      allow delete: if isUserAdmin();
+    }
+    
+    // Platform balances - Finance and Admin only
+    match /platform_balances/{balanceId} {
+      allow read, write: if isUserFinance();
+    }
+    
+    // Bet corrections - Admin only
+    match /bet_corrections/{correctionId} {
+      allow read: if isAuthenticated();
+      allow create, update, delete: if isUserAdmin();
+    }
+    
+    // Streaming channels - Admin and Streaming only
+    match /streaming_channels/{channelId} {
+      allow read: if isAuthenticated();
+      allow create, update, delete: if isUserAdmin() || isUserStreaming();
+    }
+    
+    // Notifications
+    match /notifications/{notificationId} {
+      allow read: if isAuthenticated() && isOwner(resource.data.userId);
+      allow create: if isUserAdmin() || isUserFinance() || isUserStreaming();
+      allow update: if isAuthenticated() && isOwner(resource.data.userId);
+      allow delete: if isUserAdmin();
+    }
+  }
+}
