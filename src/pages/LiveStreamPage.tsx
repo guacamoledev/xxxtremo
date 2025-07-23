@@ -25,6 +25,8 @@ import { useFights, useEvents, usePalenques, useUpdateFightStatus, useStreamingC
 import { useAuth } from '../contexts/AuthContext';
 import BettingCard from '../components/BettingCard';
 import UserBetNotifications from '../components/UserBetNotifications';
+
+import { UserZeroBalanceNotificationWithClose } from './Dashboard';
 import UserBetsPanel from '../components/UserBetsPanel';
 import { useRejectedBetNotifications } from '../hooks/useRejectedBetNotifications';
 import { useFightResultNotifications } from '../hooks/useFightResultNotifications';
@@ -213,10 +215,14 @@ const LiveStreamPage: React.FC = () => {
   }
 
   return (
-    <Box sx={{ width: '100%', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+    <Box sx={{ width: '100%', minHeight: '100vh', display: 'flex', flexDirection: 'column', pt: { xs: 7, sm: 8 } }}>
+      {/* Notificación de saldo cero siempre visible arriba */}
+      {currentUser && currentUser.balance === 0 && (
+        <UserZeroBalanceNotificationWithClose />
+      )}
       {/* Notificaciones de Usuario */}
       {currentUser && (
-        <Box sx={{ px: { xs: 2, sm: 3 }, pt: 2, pb: 1 }}>
+        <Box sx={{ px: { xs: 2, sm: 3 }, pt: 0, pb: 1 }}>
           <UserBetNotifications />
         </Box>
       )}

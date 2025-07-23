@@ -1,4 +1,19 @@
+
 import React from 'react';
+import UserZeroBalanceNotification from '../components/UserZeroBalanceNotification';
+
+
+
+// Wrapper para permitir cerrar la notificación de saldo cero
+export function UserZeroBalanceNotificationWithClose() {
+  const [open, setOpen] = React.useState(true);
+  if (!open) return null;
+  return (
+    <Box sx={{ mb: 2 }}>
+      <UserZeroBalanceNotification show={true} onClose={() => setOpen(false)} />
+    </Box>
+  );
+}
 import {
   Box,
   Typography,
@@ -19,6 +34,7 @@ import {
   AccessTime,
   People,
 } from '@mui/icons-material';
+
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useEvents } from '../hooks/useFirestore';
@@ -116,6 +132,10 @@ const Dashboard: React.FC = () => {
         <Typography variant="h4" component="h1" gutterBottom>
           Bienvenido, {currentUser?.name}!
         </Typography>
+
+        {/* Notificación de saldo cero */}
+        {currentUser && currentUser.balance === 0 && <UserZeroBalanceNotificationWithClose />}
+
         {error && (
           <Alert severity="error" sx={{ mb: 3 }}>
             {error.message || 'Error loading data'}

@@ -5,11 +5,14 @@ import { useBetsByUser } from '../hooks/useFirestore';
 import { useNotification } from '../contexts/NotificationContext';
 import type { Bet } from '../types';
 
+
 export const UserBetNotifications: React.FC = () => {
   const { currentUser } = useAuth();
   const { showSuccess, showInfo } = useNotification();
   const { data: userBets, isLoading } = useBetsByUser(currentUser?.id || '');
   const lastCheckedBetsRef = useRef<Bet[]>([]);
+
+
 
   useEffect(() => {
     if (!userBets || isLoading || !currentUser) return;
