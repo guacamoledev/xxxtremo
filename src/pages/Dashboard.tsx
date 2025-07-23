@@ -58,8 +58,8 @@ const Dashboard: React.FC = () => {
   const error = eventsError;
 
   // Filtrar eventos por status (después de obtener events)
-  const eventosActuales = events.filter(e => ['scheduled', 'in_progress'].includes(e.status));
-  const eventosPasados = events.filter(e => ['cancelled', 'finished', 'completed'].includes(e.status));
+  const eventosActuales = events.filter((e: Event) => ['scheduled', 'in_progress'].includes(e.status));
+  const eventosPasados = events.filter((e: Event) => ['cancelled', 'finished', 'completed'].includes(e.status));
 
   const getEventStatusColor = (status: Event['status']) => {
     switch (status) {
@@ -153,7 +153,7 @@ const Dashboard: React.FC = () => {
               {eventosActuales.length === 0 ? (
                 <Typography color="text.secondary">No hay eventos actuales.</Typography>
               ) : (
-                eventosActuales.map((event) => (
+                eventosActuales.map((event: Event) => (
                   <Card key={event.id} sx={{ width: 320, display: 'flex', flexDirection: 'column' }}>
                     <CardMedia
                       component="img"
@@ -221,7 +221,7 @@ const Dashboard: React.FC = () => {
               {eventosPasados.length === 0 ? (
                 <Typography color="text.secondary">No hay eventos pasados.</Typography>
               ) : (
-                eventosPasados.map((event) => (
+                eventosPasados.map((event: Event) => (
                   <Card key={event.id} sx={{ width: 320, display: 'flex', flexDirection: 'column', bgcolor: 'grey.100' }}>
                     <CardMedia
                       component="img"

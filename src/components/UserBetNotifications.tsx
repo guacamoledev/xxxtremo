@@ -20,31 +20,31 @@ export const UserBetNotifications: React.FC = () => {
     // Solo procesar si tenemos datos previos para comparar
     if (lastCheckedBetsRef.current.length > 0) {
       // Buscar apuestas que cambiaron de 'pending' a 'matched'
-      const newlyMatchedBets = userBets.filter(bet => {
-        const previousBet = lastCheckedBetsRef.current.find(prev => prev.id === bet.id);
+      const newlyMatchedBets = userBets.filter((bet: Bet) => {
+        const previousBet = lastCheckedBetsRef.current.find((prev: Bet) => prev.id === bet.id);
         return previousBet?.status === 'pending' && bet.status === 'matched';
       });
 
       // Buscar apuestas que fueron canceladas/reembolsadas
-      const refundedBets = userBets.filter(bet => {
-        const previousBet = lastCheckedBetsRef.current.find(prev => prev.id === bet.id);
+      const refundedBets = userBets.filter((bet: Bet) => {
+        const previousBet = lastCheckedBetsRef.current.find((prev: Bet) => prev.id === bet.id);
         return previousBet?.status === 'pending' && bet.status === 'refunded';
       });
 
       // Buscar apuestas que ganaron
-      const wonBets = userBets.filter(bet => {
-        const previousBet = lastCheckedBetsRef.current.find(prev => prev.id === bet.id);
+      const wonBets = userBets.filter((bet: Bet) => {
+        const previousBet = lastCheckedBetsRef.current.find((prev: Bet) => prev.id === bet.id);
         return previousBet?.status === 'matched' && bet.status === 'won';
       });
 
       // Buscar apuestas que perdieron
-      const lostBets = userBets.filter(bet => {
-        const previousBet = lastCheckedBetsRef.current.find(prev => prev.id === bet.id);
+      const lostBets = userBets.filter((bet: Bet) => {
+        const previousBet = lastCheckedBetsRef.current.find((prev: Bet) => prev.id === bet.id);
         return previousBet?.status === 'matched' && bet.status === 'lost';
       });
 
       // Mostrar notificaciones
-      newlyMatchedBets.forEach(bet => {
+      newlyMatchedBets.forEach((bet: Bet) => {
         const colorText = bet.color === 'red' ? 'Rojo' : 'Verde';
         showSuccess(
           bet.matchedAmount && bet.matchedAmount < bet.amount
@@ -54,7 +54,7 @@ export const UserBetNotifications: React.FC = () => {
         );
       });
 
-      refundedBets.forEach(bet => {
+      refundedBets.forEach((bet: Bet) => {
         const colorText = bet.color === 'red' ? 'Rojo' : 'Verde';
         showInfo(
           `Tu apuesta de $${bet.amount.toLocaleString()} MXN en ${colorText} ha sido reembolsada.`,
@@ -62,7 +62,7 @@ export const UserBetNotifications: React.FC = () => {
         );
       });
 
-      wonBets.forEach(bet => {
+      wonBets.forEach((bet: Bet) => {
         const profit = bet.profit || 0;
         const total = (bet.matchedAmount || bet.amount) + profit;
         showSuccess(
@@ -78,7 +78,7 @@ export const UserBetNotifications: React.FC = () => {
         });
       });
 
-      lostBets.forEach(bet => {
+      lostBets.forEach((bet: Bet) => {
         const colorText = bet.color === 'red' ? 'Rojo' : 'Verde';
         showInfo(
           `Tu apuesta de $${(bet.matchedAmount || bet.amount).toLocaleString()} MXN en ${colorText} no resultó ganadora.`,
@@ -99,8 +99,8 @@ export const UserBetNotifications: React.FC = () => {
 
   if (!currentUser || isLoading) return null;
 
-  const pendingBets = userBets?.filter(bet => bet.status === 'pending') || [];
-  const matchedBets = userBets?.filter(bet => bet.status === 'matched') || [];
+  const pendingBets = userBets?.filter((bet: Bet) => bet.status === 'pending') || [];
+  const matchedBets = userBets?.filter((bet: Bet) => bet.status === 'matched') || [];
 
   return (
     <Box sx={{ mb: 2 }}>

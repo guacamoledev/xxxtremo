@@ -9,9 +9,10 @@ import {
   Divider,
   IconButton,
   Collapse,
-  useTheme,
   useMediaQuery,
 } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
+import type { Theme } from '@mui/material';
 import {
   LiveTv,
   FullscreenExit,
@@ -43,8 +44,8 @@ const LiveStreamPage: React.FC = () => {
   const updateFightStatusMutation = useUpdateFightStatus();
   const { showInfo: showNotification, showSuccess: showSuccessNotification } = useNotification();
 
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const theme = useTheme<Theme>();
+  const isMobile = useMediaQuery((theme as any).breakpoints.down('sm'));
 
   // Hook para notificaciones de apuestas rechazadas (reembolsos)
   useRejectedBetNotifications({ enabled: currentUser?.role === 'viewer' });
@@ -79,7 +80,7 @@ const LiveStreamPage: React.FC = () => {
     }
     
     // Buscar el canal de streaming correspondiente
-    const streamingChannel = streamingChannels.find(channel => channel.id === selectedEvent.streamingChannel);
+  const streamingChannel = streamingChannels.find((channel: any) => channel.id === selectedEvent.streamingChannel);
     
     if (!streamingChannel) {
       console.warn(`Canal de streaming ${selectedEvent.streamingChannel} no encontrado para el evento ${selectedEvent.name}. Usando URL por defecto.`);
@@ -91,14 +92,14 @@ const LiveStreamPage: React.FC = () => {
   };
 
   // Filtrar eventos en vivo o próximos
-  const liveEvents = events.filter(event => 
+  const liveEvents = events.filter((event: Event) => 
     event.status === 'in_progress' || event.status === 'scheduled'
   );
 
   // Seleccionar automáticamente el primer evento en vivo
   useEffect(() => {
     if (liveEvents.length > 0 && !selectedEvent) {
-      const inProgressEvent = liveEvents.find(e => e.status === 'in_progress');
+      const inProgressEvent = liveEvents.find((e: Event) => e.status === 'in_progress');
       setSelectedEvent(inProgressEvent || liveEvents[0]);
     }
   }, [liveEvents, selectedEvent]);
@@ -364,7 +365,7 @@ const LiveStreamPage: React.FC = () => {
                 sx={{ fontSize: { xs: '1.1rem', sm: '1.5rem' }, lineHeight: 1.2 }}
               >
                 {(() => {
-                  const palenque = palenques.find(p => p.id === selectedEvent.palenqueId);
+                  const palenque = palenques.find((p: any) => p.id === selectedEvent.palenqueId);
                   const activeFight = eventFights.find(f => f.status === 'in_progress') || eventFights[0];
                   const palenqueName = palenque?.name || 'Palenque';
                   const eventName = selectedEvent.name;

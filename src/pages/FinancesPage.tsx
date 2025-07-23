@@ -66,7 +66,7 @@ function TabPanel(props: TabPanelProps) {
       {...other}
     >
       {value === index && (
-        <Box sx={{ p: 3 }}>
+        <Box sx={{ p: { xs: 1, sm: 3 } }}>
           {children}
         </Box>
       )}
@@ -106,7 +106,7 @@ const FinancesPage: React.FC = () => {
   });
   
   // Calcular estadísticas de elegibilidad
-  const totalWagered = bets.reduce((sum, bet) => sum + (bet.matchedAmount || bet.amount), 0);
+  const totalWagered = bets.reduce((sum: number, bet: any) => sum + (bet.matchedAmount || bet.amount), 0);
   const totalDeposited = userDeposits.reduce((sum: number, deposit: any) => sum + deposit.amount, 0);
   const withdrawalProgress = totalDeposited > 0 ? (totalWagered / totalDeposited) * 100 : 0;
   const isEligibleForWithdrawal = withdrawalProgress >= 100;
@@ -223,8 +223,8 @@ const FinancesPage: React.FC = () => {
   }
 
   return (
-    <Container maxWidth="lg">
-      <Box sx={{ my: 4 }}>
+    <Container maxWidth="lg" sx={{ px: { xs: 0.5, sm: 2 } }}>
+      <Box sx={{ my: { xs: 2, sm: 4 } }}>
         {/* Header */}
         <Typography variant="h4" component="h1" gutterBottom>
           💰 Finanzas
@@ -234,7 +234,7 @@ const FinancesPage: React.FC = () => {
         </Typography>
 
         {/* Resumen de cuenta */}
-        <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 3, mb: 4 }}>
+        <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: { xs: 2, md: 3 }, mb: { xs: 2, md: 4 } }}>
           <Box sx={{ flex: 1 }}>
             <Card sx={{ background: 'linear-gradient(45deg, #1976d2 30%, #42a5f5 90%)' }}>
               <CardContent>
@@ -288,7 +288,7 @@ const FinancesPage: React.FC = () => {
         </Box>
 
         {/* Estado de elegibilidad para retiros - Versión expandida */}
-        <Card sx={{ mb: 3 }}>
+        <Card sx={{ mb: { xs: 2, md: 3 } }}>
           <CardContent>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
               <Typography variant="h6">
@@ -363,9 +363,9 @@ const FinancesPage: React.FC = () => {
         </Card>
 
         {/* Pestañas principales */}
-        <Paper sx={{ width: '100%' }}>
-          <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-            <Tabs value={currentTab} onChange={handleTabChange}>
+        <Paper sx={{ width: '100%', overflowX: { xs: 'auto', sm: 'visible' }, boxShadow: { xs: 0, sm: 1 } }}>
+          <Box sx={{ borderBottom: 1, borderColor: 'divider', overflowX: { xs: 'auto', sm: 'visible' } }}>
+            <Tabs value={currentTab} onChange={handleTabChange} variant="scrollable" scrollButtons="auto" allowScrollButtonsMobile>
               <Tab label="Resumen" icon={<AccountBalance />} />
               <Tab label="Depósitos" icon={<TrendingUp />} />
               <Tab label="Retiros" icon={<TrendingDown />} />
@@ -375,12 +375,12 @@ const FinancesPage: React.FC = () => {
 
           {/* Tab 0: Resumen */}
           <TabPanel value={currentTab} index={0}>
-            <Box>
+            <Box sx={{ px: { xs: 0, sm: 1 } }}>
               <Typography variant="h6" gutterBottom>
                 Acciones Rápidas
               </Typography>
               
-              <Box sx={{ display: 'flex', gap: 2, mb: 4, flexWrap: 'wrap' }}>
+              <Box sx={{ display: 'flex', gap: { xs: 1, sm: 2 }, mb: { xs: 2, sm: 4 }, flexWrap: 'wrap' }}>
                 <Button
                   variant="contained"
                   startIcon={<Add />}
@@ -409,7 +409,7 @@ const FinancesPage: React.FC = () => {
                 Información Bancaria
               </Typography>
               
-              <Paper sx={{ p: 3, bgcolor: 'primary.50', border: 1, borderColor: 'primary.200' }}>
+              <Paper sx={{ p: { xs: 2, sm: 3 }, bgcolor: 'primary.50', border: 1, borderColor: 'primary.200' }}>
                 <Typography variant="subtitle1" fontWeight="medium" gutterBottom>
                   Datos para Depósitos
                 </Typography>
@@ -437,7 +437,7 @@ const FinancesPage: React.FC = () => {
 
           {/* Tab 1: Depósitos */}
           <TabPanel value={currentTab} index={1}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+            <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, justifyContent: 'space-between', alignItems: { xs: 'stretch', sm: 'center' }, mb: { xs: 2, sm: 3 }, gap: { xs: 1, sm: 0 } }}>
               <Typography variant="h6">
                 Gestión de Depósitos
               </Typography>
@@ -466,8 +466,8 @@ const FinancesPage: React.FC = () => {
             </Alert>
 
             {/* Lista de depósitos */}
-            <TableContainer component={Paper}>
-              <Table>
+            <TableContainer component={Paper} sx={{ maxWidth: '100vw', overflowX: 'auto', boxShadow: 0 }}>
+              <Table size="small" sx={{ minWidth: 600 }}>
                 <TableHead>
                   <TableRow>
                     <TableCell>Fecha</TableCell>
@@ -531,7 +531,7 @@ const FinancesPage: React.FC = () => {
 
           {/* Tab 2: Retiros */}
           <TabPanel value={currentTab} index={2}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+            <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, justifyContent: 'space-between', alignItems: { xs: 'stretch', sm: 'center' }, mb: { xs: 2, sm: 3 }, gap: { xs: 1, sm: 0 } }}>
               <Typography variant="h6">
                 Gestión de Retiros
               </Typography>
@@ -561,8 +561,8 @@ const FinancesPage: React.FC = () => {
             </Alert>
 
             {/* Lista de retiros */}
-            <TableContainer component={Paper}>
-              <Table>
+            <TableContainer component={Paper} sx={{ maxWidth: '100vw', overflowX: 'auto', boxShadow: 0 }}>
+              <Table size="small" sx={{ minWidth: 600 }}>
                 <TableHead>
                   <TableRow>
                     <TableCell>Fecha</TableCell>
@@ -630,7 +630,7 @@ const FinancesPage: React.FC = () => {
 
           {/* Tab 3: Historial */}
           <TabPanel value={currentTab} index={3}>
-            <Typography variant="h6" gutterBottom>
+            <Typography variant="h6" gutterBottom sx={{ px: { xs: 0, sm: 1 } }}>
               Historial Completo de Transacciones
             </Typography>
             
@@ -639,8 +639,8 @@ const FinancesPage: React.FC = () => {
                 <CircularProgress />
               </Box>
             ) : (
-              <TableContainer component={Paper}>
-                <Table>
+              <TableContainer component={Paper} sx={{ maxWidth: '100vw', overflowX: 'auto', boxShadow: 0 }}>
+                <Table size="small" sx={{ minWidth: 600 }}>
                   <TableHead>
                     <TableRow>
                       <TableCell>Tipo</TableCell>
