@@ -13,10 +13,6 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  FormControl,
-  RadioGroup,
-  FormControlLabel,
-  Radio,
   Table,
   TableBody,
   TableCell,
@@ -25,7 +21,6 @@ import {
   TableRow,
   Chip,
   Avatar,
-  Divider,
   IconButton,
   Tooltip,
   Collapse,
@@ -729,13 +724,34 @@ const BettingAdminPage: React.FC = () => {
                   {selectedFight.cock1.name} vs {selectedFight.cock2.name}
                 </Typography>
                 
-                {/* Betting Summary */}
+
+                {/* Betting Summary como botones de selección */}
                 <Box sx={{ mb: 3 }}>
                   <Typography variant="subtitle1" gutterBottom>
                     Resumen de Apuestas:
                   </Typography>
                   <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
-                    <Card sx={{ flex: 1, backgroundColor: 'error.light', color: 'error.contrastText' }}>
+                    {/* Gallo Rojo */}
+                    <Card
+                      sx={{
+                        flex: 1,
+                        backgroundColor: winner === 'red' ? 'error.main' : 'grey.100',
+                        color: winner === 'red' ? 'error.contrastText' : 'grey.500',
+                        cursor: 'pointer',
+                        border: winner === 'red' ? 3 : 1,
+                        borderColor: winner === 'red' ? 'error.dark' : 'transparent',
+                        boxShadow: winner === 'red' ? 12 : 1,
+                        transform: winner === 'red' ? 'scale(1.04)' : 'scale(1)',
+                        zIndex: winner === 'red' ? 2 : 1,
+                        transition: 'all 0.18s cubic-bezier(.4,2,.6,1)',
+                        outline: winner === 'red' ? '3px solid #d32f2f' : 'none',
+                        filter: winner === 'red' ? 'none' : 'grayscale(0.7)',
+                        opacity: winner === 'red' ? 1 : 0.7,
+                      }}
+                      onClick={() => setWinner('red')}
+                      tabIndex={0}
+                      aria-selected={winner === 'red'}
+                    >
                       <CardContent sx={{ py: 2 }}>
                         <Typography variant="h6">Gallo Rojo</Typography>
                         <Typography variant="h4">
@@ -746,7 +762,57 @@ const BettingAdminPage: React.FC = () => {
                         </Typography>
                       </CardContent>
                     </Card>
-                    <Card sx={{ flex: 1, backgroundColor: 'success.light', color: 'success.contrastText' }}>
+                    {/* Empate */}
+                    <Card
+                      sx={{
+                        flex: 1,
+                        backgroundColor: winner === 'draw' ? 'grey.800' : 'grey.100',
+                        color: winner === 'draw' ? 'grey.100' : 'grey.500',
+                        cursor: 'pointer',
+                        border: winner === 'draw' ? 3 : 1,
+                        borderColor: winner === 'draw' ? 'grey.900' : 'transparent',
+                        boxShadow: winner === 'draw' ? 12 : 1,
+                        transform: winner === 'draw' ? 'scale(1.04)' : 'scale(1)',
+                        zIndex: winner === 'draw' ? 2 : 1,
+                        transition: 'all 0.18s cubic-bezier(.4,2,.6,1)',
+                        outline: winner === 'draw' ? '3px solid #333' : 'none',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        filter: winner === 'draw' ? 'none' : 'grayscale(0.7)',
+                        opacity: winner === 'draw' ? 1 : 0.7,
+                      }}
+                      onClick={() => setWinner('draw')}
+                      tabIndex={0}
+                      aria-selected={winner === 'draw'}
+                    >
+                      <CardContent sx={{ py: 2, textAlign: 'center' }}>
+                        <Typography variant="h6">Empate</Typography>
+                        <Typography variant="h4">-</Typography>
+                        <Typography variant="body2">Reembolso a todos</Typography>
+                      </CardContent>
+                    </Card>
+                    {/* Gallo Verde */}
+                    <Card
+                      sx={{
+                        flex: 1,
+                        backgroundColor: winner === 'green' ? 'success.main' : 'grey.100',
+                        color: winner === 'green' ? 'success.contrastText' : 'grey.500',
+                        cursor: 'pointer',
+                        border: winner === 'green' ? 3 : 1,
+                        borderColor: winner === 'green' ? 'success.dark' : 'transparent',
+                        boxShadow: winner === 'green' ? 12 : 1,
+                        transform: winner === 'green' ? 'scale(1.04)' : 'scale(1)',
+                        zIndex: winner === 'green' ? 2 : 1,
+                        transition: 'all 0.18s cubic-bezier(.4,2,.6,1)',
+                        outline: winner === 'green' ? '3px solid #388e3c' : 'none',
+                        filter: winner === 'green' ? 'none' : 'grayscale(0.7)',
+                        opacity: winner === 'green' ? 1 : 0.7,
+                      }}
+                      onClick={() => setWinner('green')}
+                      tabIndex={0}
+                      aria-selected={winner === 'green'}
+                    >
                       <CardContent sx={{ py: 2 }}>
                         <Typography variant="h6">Gallo Verde</Typography>
                         <Typography variant="h4">
@@ -763,50 +829,8 @@ const BettingAdminPage: React.FC = () => {
                   </Typography>
                 </Box>
 
-                <Divider sx={{ my: 2 }} />
 
-                {/* Winner Selection */}
-                <Typography variant="subtitle1" gutterBottom>
-                  Selecciona el ganador:
-                </Typography>
-                <FormControl component="fieldset">
-                  <RadioGroup
-                    value={winner}
-                    onChange={(e) => setWinner(e.target.value as 'red' | 'green' | 'draw')}
-                    row
-                  >
-                    <FormControlLabel
-                      value="red"
-                      control={<Radio />}
-                      label={
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Chip label="Rojo" color="error" size="small" />
-                          {selectedFight.cock1.name}
-                        </Box>
-                      }
-                    />
-                    <FormControlLabel
-                      value="green"
-                      control={<Radio />}
-                      label={
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Chip label="Verde" color="success" size="small" />
-                          {selectedFight.cock2.name}
-                        </Box>
-                      }
-                    />
-                    <FormControlLabel
-                      value="draw"
-                      control={<Radio />}
-                      label={
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Chip label="Empate" color="default" size="small" />
-                          Empate (Reembolso)
-                        </Box>
-                      }
-                    />
-                  </RadioGroup>
-                </FormControl>
+                {/* Eliminado: selección de ganador con RadioGroup, ahora se selecciona con los CardContent de arriba */}
 
                 {winner === 'draw' && (
                   <Alert severity="info" sx={{ mt: 2 }}>
