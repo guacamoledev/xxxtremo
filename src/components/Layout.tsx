@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import logo from '../logo.png';
 import {
   AppBar,
   Box,
@@ -28,8 +29,8 @@ import {
   Assessment,
   Logout,
   Person,
-  Settings,
   AccountBalanceWallet,
+  Event,
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -47,6 +48,7 @@ const Layout: React.FC<LayoutProps> = ({ children, noPadding = false }) => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const navigate = useNavigate();
   const location = useLocation();
+  
   const { currentUser, logout } = useAuth();
 
   const handleDrawerToggle = () => {
@@ -55,7 +57,7 @@ const Layout: React.FC<LayoutProps> = ({ children, noPadding = false }) => {
 
   const handleProfileMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
-  };
+  }
 
   const handleProfileMenuClose = () => {
     setAnchorEl(null);
@@ -74,10 +76,11 @@ const Layout: React.FC<LayoutProps> = ({ children, noPadding = false }) => {
   // Navigation items based on user role
   const getNavigationItems = () => {
     const baseItems = [
-      { text: 'Dashboard', icon: <Dashboard />, path: '/dashboard' },
-      { text: 'Live Events', icon: <LiveTv />, path: '/live' },
-      { text: 'Bet History', icon: <History />, path: '/history' },
-      { text: 'Finances', icon: <AccountBalance />, path: '/finances' },
+      { text: 'Inicio', icon: <Dashboard />, path: '/dashboard' },
+      { text: 'Peleas en vivo', icon: <LiveTv />, path: '/live' },
+      { text: 'Eventos', icon: <Event />, path: '/eventos' },
+      { text: 'Historial de apuestas', icon: <History />, path: '/history' },
+      { text: 'Finanzas', icon: <AccountBalance />, path: '/finances' },
     ];
 
     // Solo ADMIN y FINANCE ven la opción Usuarios
@@ -89,13 +92,14 @@ const Layout: React.FC<LayoutProps> = ({ children, noPadding = false }) => {
       baseItems.push(
         { text: 'Admin Panel', icon: <AdminPanelSettings />, path: '/admin' },
         { text: 'Admin Finanzas', icon: <AccountBalanceWallet />, path: '/admin/finances' },
-        { text: 'Reports', icon: <Assessment />, path: '/reports' }
+        { text: 'Reportes', icon: <Assessment />, path: '/reports' }
       );
     }
 
     if (currentUser?.role === UserRole.FINANCE) {
       baseItems.push(
-        { text: 'Admin Finanzas', icon: <AccountBalanceWallet />, path: '/admin/finances' }
+        { text: 'Admin Finanzas', icon: <AccountBalanceWallet />, path: '/admin/finances' },
+        { text: 'Reportes', icon: <Assessment />, path: '/reports' }
       );
     }
 
@@ -111,9 +115,6 @@ const Layout: React.FC<LayoutProps> = ({ children, noPadding = false }) => {
   const drawer = (
     <div>
       <Toolbar>
-        <Typography variant="h6" noWrap component="div" sx={{ color: 'primary.main', fontWeight: 'bold' }}>
-          XXXTREMO
-        </Typography>
       </Toolbar>
       <Divider />
       <List>
@@ -169,9 +170,13 @@ const Layout: React.FC<LayoutProps> = ({ children, noPadding = false }) => {
           >
             <MenuIcon />
           </IconButton>
-          <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
-            XXXTREMO Platform
-          </Typography>
+          <Box sx={{ flexGrow: 1, display: 'flex', alignItems: 'center', gap: { xs: 2.5, sm: 4 } }}>
+            <img
+              src={logo}
+              alt="XXXTREMO Logo"
+              className="xxxtremo-logo"
+            />
+          </Box>
           
           {/* User balance */}
           <Chip
@@ -219,17 +224,11 @@ const Layout: React.FC<LayoutProps> = ({ children, noPadding = false }) => {
           <Chip label={currentUser.role} size="small" />
         </MenuItem>
         <Divider />
-        <MenuItem onClick={() => { navigate('/profile'); handleProfileMenuClose(); }}>
+        <MenuItem onClick={() => { navigate('/perfil'); handleProfileMenuClose(); }}>
           <ListItemIcon>
             <Person fontSize="small" />
           </ListItemIcon>
-          Profile
-        </MenuItem>
-        <MenuItem onClick={() => { navigate('/settings'); handleProfileMenuClose(); }}>
-          <ListItemIcon>
-            <Settings fontSize="small" />
-          </ListItemIcon>
-          Settings
+          Perfil
         </MenuItem>
         <Divider />
         <MenuItem onClick={handleLogout}>

@@ -1,0 +1,16 @@
+
+
+
+.xxxtremo-logo {
+  height: 32px;
+  max-width: 120px;
+  object-fit: contain;
+  display: block;
+}
+
+@media (max-width: 600px) {
+  .xxxtremo-logo {
+    height: 22px;
+    max-width: 80px;
+  }
+}

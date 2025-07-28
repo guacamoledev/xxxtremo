@@ -239,8 +239,19 @@ const MyBetsPage: React.FC = () => {
   }
 
   return (
-    <Container maxWidth="lg">
-      <Box sx={{ my: 4 }}>
+    <Container
+      maxWidth={false}
+      disableGutters
+      sx={{
+        px: { xs: 0, sm: 0 },
+        pt: 'env(safe-area-inset-top)',
+        pb: 'env(safe-area-inset-bottom)',
+        minHeight: '100vh',
+        width: '100vw',
+        overflowX: 'hidden',
+      }}
+    >
+      <Box sx={{ my: { xs: 2, sm: 4 }, px: { xs: 1, sm: 0 } }}>
         {/* Header */}
         <Typography variant="h4" component="h1" gutterBottom>
           📊 Mis Apuestas
@@ -465,7 +476,7 @@ const MyBetsPage: React.FC = () => {
 
         {/* Tabla de apuestas */}
         {bets.length === 0 ? (
-          <Paper sx={{ p: 4, textAlign: 'center' }}>
+          <Paper sx={{ p: 4, textAlign: 'center', maxWidth: 600, mx: 'auto' }}>
             <BetIcon sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
             <Typography variant="h6" gutterBottom>
               No has realizado apuestas
@@ -475,8 +486,24 @@ const MyBetsPage: React.FC = () => {
             </Typography>
           </Paper>
         ) : (
-          <TableContainer component={Paper}>
-            <Table>
+          <TableContainer
+            component={Paper}
+            sx={{
+              width: '100%',
+              overflowX: 'auto',
+              maxWidth: '100vw',
+              boxShadow: 0,
+              mx: { xs: -1, sm: 0 },
+            }}
+          >
+            <Table
+              size="small"
+              sx={{
+                minWidth: 600,
+                width: '100%',
+                tableLayout: 'fixed',
+              }}
+            >
               <TableHead>
                 <TableRow>
                   <TableCell>Fecha</TableCell>

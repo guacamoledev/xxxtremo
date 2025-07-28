@@ -223,12 +223,32 @@ const FinancesPage: React.FC = () => {
   }
 
   return (
-    <Container maxWidth="lg" sx={{ px: { xs: 0.5, sm: 2 } }}>
+    <Container
+      maxWidth={false}
+      disableGutters
+      sx={{
+        px: { xs: 0, sm: 0 },
+        pt: 'env(safe-area-inset-top)',
+        pb: 'env(safe-area-inset-bottom)',
+        minHeight: '100vh',
+        width: '100vw',
+        overflowX: 'hidden',
+      }}
+    >
       <Box sx={{ my: { xs: 2, sm: 4 } }}>
         {/* Header */}
         <Typography variant="h4" component="h1" gutterBottom>
-          💰 Finanzas
+          💰 Finanzas  <Button
+                  variant="contained"
+                  startIcon={<Add />}
+                  onClick={() => setDepositDialogOpen(true)}
+                  size="large"
+                  sx={{ minWidth: 150 }}
+                >
+                  Depositar
+                </Button>
         </Typography>
+        
         <Typography variant="subtitle1" color="text.secondary" gutterBottom>
           Gestiona tus depósitos, retiros y historial financiero
         </Typography>
@@ -363,7 +383,7 @@ const FinancesPage: React.FC = () => {
         </Card>
 
         {/* Pestañas principales */}
-        <Paper sx={{ width: '100%', overflowX: { xs: 'auto', sm: 'visible' }, boxShadow: { xs: 0, sm: 1 } }}>
+        <Paper sx={{ width: '100%', overflowX: 'hidden', boxShadow: { xs: 0, sm: 1 }, background: 'transparent' }}>
           <Box sx={{ borderBottom: 1, borderColor: 'divider', overflowX: { xs: 'auto', sm: 'visible' } }}>
             <Tabs value={currentTab} onChange={handleTabChange} variant="scrollable" scrollButtons="auto" allowScrollButtonsMobile>
               <Tab label="Resumen" icon={<AccountBalance />} />
@@ -466,8 +486,8 @@ const FinancesPage: React.FC = () => {
             </Alert>
 
             {/* Lista de depósitos */}
-            <TableContainer component={Paper} sx={{ maxWidth: '100vw', overflowX: 'auto', boxShadow: 0 }}>
-              <Table size="small" sx={{ minWidth: 600 }}>
+            <TableContainer component={Paper} sx={{ width: '100%', overflowX: 'auto', boxShadow: 0, maxWidth: '100vw' }}>
+              <Table size="small" sx={{ minWidth: 600, width: '100%' }}>
                 <TableHead>
                   <TableRow>
                     <TableCell>Fecha</TableCell>
@@ -561,8 +581,8 @@ const FinancesPage: React.FC = () => {
             </Alert>
 
             {/* Lista de retiros */}
-            <TableContainer component={Paper} sx={{ maxWidth: '100vw', overflowX: 'auto', boxShadow: 0 }}>
-              <Table size="small" sx={{ minWidth: 600 }}>
+            <TableContainer component={Paper} sx={{ width: '100%', overflowX: 'auto', boxShadow: 0, maxWidth: '100vw' }}>
+              <Table size="small" sx={{ minWidth: 600, width: '100%' }}>
                 <TableHead>
                   <TableRow>
                     <TableCell>Fecha</TableCell>
@@ -639,8 +659,8 @@ const FinancesPage: React.FC = () => {
                 <CircularProgress />
               </Box>
             ) : (
-              <TableContainer component={Paper} sx={{ maxWidth: '100vw', overflowX: 'auto', boxShadow: 0 }}>
-                <Table size="small" sx={{ minWidth: 600 }}>
+              <TableContainer component={Paper} sx={{ width: '100%', overflowX: 'auto', boxShadow: 0, maxWidth: '100vw' }}>
+                <Table size="small" sx={{ minWidth: 600, width: '100%' }}>
                   <TableHead>
                     <TableRow>
                       <TableCell>Tipo</TableCell>
@@ -746,16 +766,7 @@ const FinancesPage: React.FC = () => {
               sx={{ mb: 2 }}
             />
             
-            <TextField
-              margin="dense"
-              label="Referencia Bancaria"
-              fullWidth
-              variant="outlined"
-              value={depositForm.bankReference}
-              onChange={(e) => setDepositForm({...depositForm, bankReference: e.target.value})}
-              helperText="Número de referencia de tu transferencia"
-              sx={{ mb: 2 }}
-            />
+
             
             <Button
               variant="outlined"

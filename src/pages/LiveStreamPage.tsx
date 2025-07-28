@@ -517,17 +517,6 @@ const LiveStreamPage: React.FC = () => {
           }}
           onClick={() => setShowInfo(!showInfo)}
         >
-          <Typography 
-            variant={isMobile ? "body1" : "h6"} 
-            color="primary.main" 
-            fontWeight="bold"
-            sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}
-          >
-            ℹ️ Información Importante
-          </Typography>
-          <IconButton size={isMobile ? "small" : "medium"} sx={{ color: 'primary.main' }}>
-            {showInfo ? <ExpandLess /> : <ExpandMore />}
-          </IconButton>
         </Box>
         
         <Collapse in={showInfo}>

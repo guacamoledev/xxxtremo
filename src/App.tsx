@@ -2,32 +2,38 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { ThemeProvider } from '@mui/material/styles';
 import { CssBaseline } from '@mui/material';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import ReportsPage from './pages/ReportsPage';
+import { UserRole } from './types';
 
 import theme from './theme';
-import UsersPage from './pages/UsersPage';
-import LandingPage from './pages/LandingPage';
-import TermsPage from './pages/TermsPage';
+import { lazy, Suspense } from 'react';
+const UsersPage = lazy(() => import('./pages/UsersPage'));
+const LandingPage = lazy(() => import('./pages/LandingPage'));
+const TermsPage = lazy(() => import('./pages/TermsPage'));
 import { AuthProvider } from './contexts/AuthContext';
 import { NotificationProvider } from './contexts/NotificationContext';
 import Layout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
+import UserProfilePage from './pages/UserProfilePage';
+import EventsCalendarPage from './pages/EventsCalendarPage';
 
 // Pages
-import Login from './pages/Login';
-import Register from './pages/Register';
-import Dashboard from './pages/Dashboard';
-import BettingPage from './pages/BettingPage';
-import MyBetsPage from './pages/MyBetsPage';
-import BettingAdminPage from './pages/BettingAdminPage';
-import LiveStreamPage from './pages/LiveStreamPage';
-import FinancesPage from './pages/FinancesPage';
+const Login = lazy(() => import('./pages/Login'));
+const Register = lazy(() => import('./pages/Register'));
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const BettingPage = lazy(() => import('./pages/BettingPage'));
+const MyBetsPage = lazy(() => import('./pages/MyBetsPage'));
+const BettingAdminPage = lazy(() => import('./pages/BettingAdminPage'));
+const LiveStreamPage = lazy(() => import('./pages/LiveStreamPage'));
+const FinancesPage = lazy(() => import('./pages/FinancesPage'));
+// Pages
 
 // Admin pages
-import AdminPanel from './pages/admin/AdminPanel';
-import PalenquesPage from './pages/admin/PalenquesPage';
-import EventsPage from './pages/admin/EventsPage';
-import FightsPage from './pages/admin/FightsPage';
-import FinanceAdminPage from './pages/admin/FinanceAdminPage';
+const AdminPanel = lazy(() => import('./pages/admin/AdminPanel'));
+const PalenquesPage = lazy(() => import('./pages/admin/PalenquesPage'));
+const EventsPage = lazy(() => import('./pages/admin/EventsPage'));
+const FightsPage = lazy(() => import('./pages/admin/FightsPage'));
+const FinanceAdminPage = lazy(() => import('./pages/admin/FinanceAdminPage'));
 
 // Debug utilities for development
 import './utils/debugAuth';
@@ -45,7 +51,7 @@ const queryClient = new QueryClient({
     },
     mutations: {
       retry: 1, // Reintentar mutaciones 1 vez
-      onError: (error) => {
+      onError: (error: unknown) => {
         console.error('Mutation error:', error);
       },
     },
@@ -60,155 +66,51 @@ function App() {
         <NotificationProvider>
           <AuthProvider>
             <Router>
-            <Routes>
-              {/* Landing page y términos */}
-              <Route path="/" element={<LandingPage />} />
-              <Route path="/terms" element={<TermsPage />} />
+              <Suspense fallback={<div>Cargando...</div>}>
+                <Routes>
+                  {/* Landing page y términos */}
+                  <Route path="/" element={<LandingPage />} />
+                  <Route path="/terms" element={<TermsPage />} />
 
-              {/* Public routes */}
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
+                  {/* Public routes */}
+                  <Route path="/login" element={<Login />} />
+                  <Route path="/register" element={<Register />} />
 
-              {/* Protected routes */}
-              <Route
-                path="/dashboard"
-                element={
-                  <ProtectedRoute>
-                    <Layout>
-                      <Dashboard />
-                    </Layout>
-                  </ProtectedRoute>
-                }
-              />
+                  {/* Protected routes */}
+                  <Route path="/dashboard" element={<ProtectedRoute><Layout><Dashboard /></Layout></ProtectedRoute>} />
+                  <Route path="/betting" element={<ProtectedRoute><Layout><BettingPage /></Layout></ProtectedRoute>} />
+                  <Route path="/users" element={<ProtectedRoute><Layout><UsersPage /></Layout></ProtectedRoute>} />
+                  <Route path="/admin" element={<ProtectedRoute><Layout><AdminPanel /></Layout></ProtectedRoute>} />
+                  <Route path="/admin/palenques" element={<ProtectedRoute><Layout><PalenquesPage /></Layout></ProtectedRoute>} />
+                  <Route path="/admin/events" element={<ProtectedRoute><Layout><EventsPage /></Layout></ProtectedRoute>} />
+                  <Route path="/admin/fights" element={<ProtectedRoute><Layout><FightsPage /></Layout></ProtectedRoute>} />
+                  <Route path="/admin/betting" element={<ProtectedRoute><Layout><BettingAdminPage /></Layout></ProtectedRoute>} />
+                  <Route path="/admin/finances" element={<ProtectedRoute><Layout><FinanceAdminPage /></Layout></ProtectedRoute>} />
+                  <Route path="/eventos" element={<ProtectedRoute><Layout><EventsCalendarPage /></Layout></ProtectedRoute>} />
+                  <Route path="/perfil" element={<ProtectedRoute><Layout><UserProfilePage /></Layout></ProtectedRoute>} />
+        <Route
+          path="/reports"
+          element={
+            <ProtectedRoute roles={[UserRole.ADMIN, UserRole.FINANCE]}>
+              <Layout>
+                <ReportsPage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+                  <Route path="/live" element={<ProtectedRoute><Layout noPadding><LiveStreamPage /></Layout></ProtectedRoute>} />
+                  <Route path="/history" element={<ProtectedRoute><Layout><MyBetsPage /></Layout></ProtectedRoute>} />
+                  <Route path="/finances" element={<ProtectedRoute><Layout><FinancesPage /></Layout></ProtectedRoute>} />
 
-              <Route
-                path="/betting"
-                element={
-                  <ProtectedRoute>
-                    <Layout>
-                      <BettingPage />
-                    </Layout>
-                  </ProtectedRoute>
-                }
-              />
-
-              {/* Usuarios - solo para admin y finanzas */}
-              <Route
-                path="/users"
-                element={
-                  <ProtectedRoute roles={['admin', 'finance']}>
-                    <Layout>
-                      <UsersPage />
-                    </Layout>
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin"
-                element={
-                  <ProtectedRoute roles={['admin']}>
-                    <Layout>
-                      <AdminPanel />
-                    </Layout>
-                  </ProtectedRoute>
-                }
-              />
-
-              <Route
-                path="/admin/palenques"
-                element={
-                  <ProtectedRoute roles={['admin']}>
-                    <Layout>
-                      <PalenquesPage />
-                    </Layout>
-                  </ProtectedRoute>
-                }
-              />
-
-              <Route
-                path="/admin/events"
-                element={
-                  <ProtectedRoute roles={['admin']}>
-                    <Layout>
-                      <EventsPage />
-                    </Layout>
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/fights"
-                element={
-                  <ProtectedRoute roles={['admin']}>
-                    <Layout>
-                      <FightsPage />
-                    </Layout>
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/betting"
-                element={
-                  <ProtectedRoute roles={['admin']}>
-                    <Layout>
-                      <BettingAdminPage />
-                    </Layout>
-                  </ProtectedRoute>
-                }
-              />
-
-              <Route
-                path="/admin/finances"
-                element={
-                  <ProtectedRoute roles={['admin', 'finance']}>
-                    <Layout>
-                      <FinanceAdminPage />
-                    </Layout>
-                  </ProtectedRoute>
-                }
-              />
-
-              {/* Other protected routes */}
-              <Route
-                path="/live"
-                element={
-                  <ProtectedRoute>
-                    <Layout noPadding>
-                      <LiveStreamPage />
-                    </Layout>
-                  </ProtectedRoute>
-                }
-              />
-
-              <Route
-                path="/history"
-                element={
-                  <ProtectedRoute>
-                    <Layout>
-                      <MyBetsPage />
-                    </Layout>
-                  </ProtectedRoute>
-                }
-              />
-
-              <Route 
-                path="/finances" 
-                element={
-                  <ProtectedRoute>
-                    <Layout>
-                      <FinancesPage />
-                    </Layout>
-                  </ProtectedRoute>
-                } 
-              />
-
-              {/* Default redirect para rutas no encontradas */}
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-          </Router>
-        </AuthProvider>
-      </NotificationProvider>
-    </ThemeProvider>
-  </QueryClientProvider>
+                  {/* Default redirect para rutas no encontradas */}
+                  <Route path="*" element={<Navigate to="/" replace />} />
+                </Routes>
+              </Suspense>
+            </Router>
+          </AuthProvider>
+        </NotificationProvider>
+      </ThemeProvider>
+    </QueryClientProvider>
   );
 }
 

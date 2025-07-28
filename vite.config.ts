@@ -9,16 +9,15 @@ export default defineConfig({
   },
   build: {
     chunkSizeWarningLimit: 1000, // aumenta el límite a 1000 kB
-    // rollupOptions: {
-    //   output: {
-    //     manualChunks(id) {
-    //       if (id.includes('node_modules')) {
-    //         if (id.includes('firebase')) return 'firebase';
-    //         if (id.includes('@mui')) return 'mui';
-    //         if (id.includes('react')) return 'react';
-    //       }
-    //     },
-    //   },
-    // },
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // Agrupa dependencias grandes en chunks separados
+          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+          'mui-vendor': ['@mui/material', '@mui/system', '@mui/icons-material', '@mui/x-date-pickers'],
+          'firebase-vendor': ['firebase'],
+        },
+      },
+    },
   },
 })
