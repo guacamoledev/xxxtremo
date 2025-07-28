@@ -193,7 +193,7 @@ const Register: React.FC = () => {
         <Card sx={{ mt: 8, width: '100%', maxWidth: 400 }}>
           <CardContent sx={{ p: 4 }}>
             <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 3 }}>
-              <img src="../src/logo.png" alt="XXXTREMO Logo" style={{ width: 'auto', height: 'auto', marginBottom: 8 }} />
+              <img src="/public/logo.png" alt="XXXTREMO Logo" style={{ width: 'auto', height: 'auto', marginBottom: 8 }} />
               <Typography variant="h6" color="textSecondary">
                 Crea tu cuenta
               </Typography>

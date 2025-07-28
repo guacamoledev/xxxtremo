@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import logo from '../logo.png';
 import {
   AppBar,
   Box,
@@ -172,7 +171,7 @@ const Layout: React.FC<LayoutProps> = ({ children, noPadding = false }) => {
           </IconButton>
           <Box sx={{ flexGrow: 1, display: 'flex', alignItems: 'center', gap: { xs: 2.5, sm: 4 } }}>
             <img
-              src={logo}
+              src="/logo.png"
               alt="XXXTREMO Logo"
               className="xxxtremo-logo"
             />
