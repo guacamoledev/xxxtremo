@@ -11,7 +11,7 @@ import {
   Paper,
   Link,
 } from '@mui/material';
-import { Login, SportsKabaddi, Facebook, Instagram, YouTube } from '@mui/icons-material';
+import { Login, Facebook, Instagram, YouTube } from '@mui/icons-material';
 
 const LandingPage: React.FC = () => {
   return (
