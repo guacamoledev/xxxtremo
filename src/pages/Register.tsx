@@ -13,7 +13,30 @@ import {
   Link,
   CircularProgress,
   Container,
+  MenuItem,
+  Select,
+  InputLabel,
+  FormControl,
+  ListItemIcon,
 } from '@mui/material';
+// Ladas de países y banderas (puedes expandir la lista)
+const countryCodes = [
+  { code: '52', label: 'México', flag: '🇲🇽' },
+  { code: '1', label: 'Estados Unidos', flag: '🇺🇸' },
+  { code: '1', label: 'Canadá', flag: '🇨🇦' },
+  { code: '54', label: 'Argentina', flag: '🇦🇷' },
+  { code: '55', label: 'Brasil', flag: '🇧🇷' },
+  { code: '57', label: 'Colombia', flag: '🇨🇴' },
+  { code: '56', label: 'Chile', flag: '🇨🇱' },
+  { code: '34', label: 'España', flag: '🇪🇸' },
+  { code: '44', label: 'Reino Unido', flag: '🇬🇧' },
+  { code: '49', label: 'Alemania', flag: '🇩🇪' },
+  { code: '33', label: 'Francia', flag: '🇫🇷' },
+  { code: '39', label: 'Italia', flag: '🇮🇹' },
+  { code: '81', label: 'Japón', flag: '🇯🇵' },
+  { code: '86', label: 'China', flag: '🇨🇳' },
+  // ...agrega más si lo necesitas
+];
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -37,7 +60,9 @@ const Register: React.FC = () => {
     password: '',
     confirmPassword: '',
     birthdate: '',
-    phone: '',
+    lada: '52',
+    telefono: '',
+    phone: '', // se sigue usando para el backend, pero se arma con lada+telefono
   });
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [error, setError] = useState('');
@@ -50,16 +75,29 @@ const Register: React.FC = () => {
   const navigate = useNavigate();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  // Handler específico para el Select de lada (MUI espera un tipo diferente)
+  const handleLadaChange = (event: any) => {
+    setFormData(prev => ({
+      ...prev,
+      lada: event.target.value,
+    }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name || !formData.email || !formData.password || !formData.confirmPassword || !formData.birthdate || !formData.phone) {
+    if (!formData.name || !formData.email || !formData.password || !formData.confirmPassword || !formData.birthdate || !formData.lada || !formData.telefono) {
       setError('Please fill in all fields');
+      return;
+    }
+    if (!/^[0-9]{10}$/.test(formData.telefono)) {
+      setError('El teléfono debe tener exactamente 10 dígitos numéricos.');
       return;
     }
     if (!acceptTerms) {
@@ -97,10 +135,13 @@ const Register: React.FC = () => {
   // Enviar SMS
   const sendVerificationCode = async () => {
     setError('');
-    if (!/^[+][1-9]{1}[0-9]{7,14}$/.test(formData.phone)) {
+    // Armar el teléfono internacional
+    const phone = `+${formData.lada}${formData.telefono}`;
+    if (!/^\+[1-9]{1}[0-9]{7,14}$/.test(phone)) {
       setError('Ingresa el número en formato internacional, ej: +521234567890');
       return;
     }
+    formData.phone = phone;
     try {
       setLoading(true);
       let recaptcha: RecaptchaVerifier = (window as any).recaptchaVerifier;
@@ -152,11 +193,9 @@ const Register: React.FC = () => {
         <Card sx={{ mt: 8, width: '100%', maxWidth: 400 }}>
           <CardContent sx={{ p: 4 }}>
             <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 3 }}>
-              <Typography component="h1" variant="h4" sx={{ color: 'primary.main', fontWeight: 'bold', mb: 1 }}>
-                XXXTREMO
-              </Typography>
+              <img src="../src/logo.png" alt="XXXTREMO Logo" style={{ width: 'auto', height: 'auto', marginBottom: 8 }} />
               <Typography variant="h6" color="textSecondary">
-                Create your account
+                Crea tu cuenta
               </Typography>
             </Box>
 
@@ -172,7 +211,7 @@ const Register: React.FC = () => {
                 required
                 fullWidth
                 id="name"
-                label="Full Name"
+                label="Nombre completo"
                 name="name"
                 autoComplete="name"
                 autoFocus
@@ -185,7 +224,7 @@ const Register: React.FC = () => {
                 required
                 fullWidth
                 id="birthdate"
-                label="Birthdate"
+                label="Fecha de nacimiento"
                 name="birthdate"
                 type="date"
                 InputLabelProps={{ shrink: true }}
@@ -193,34 +232,72 @@ const Register: React.FC = () => {
                 onChange={handleChange}
                 disabled={loading}
               />
-              <TextField
-                margin="normal"
-                required
-                fullWidth
-                id="phone"
-                label="Número de celular (incluye clave lada, ej: +521234567890)"
-                name="phone"
-                type="tel"
-                inputProps={{ maxLength: 16, pattern: '^\\+[1-9]{1}[0-9]{7,14}$' }}
-                value={formData.phone}
-                onChange={handleChange}
-                disabled={loading || phoneVerified}
-                placeholder="+521234567890"
-              />
+              <Box sx={{ display: 'flex', gap: 1, mb: 2, mt: 2, alignItems: 'center' }}>
+                <FormControl required sx={{ width: '40%' }} disabled={loading || phoneVerified} size="small">
+                  <InputLabel id="lada-label">País</InputLabel>
+                  <Select
+                    labelId="lada-label"
+                    id="lada"
+                    name="lada"
+                    value={formData.lada}
+                    label="Lada"
+                    onChange={handleLadaChange}
+                    renderValue={selected => {
+                      const country = countryCodes.find(c => c.code === selected);
+                      return country ? `${country.flag} +${country.code}` : selected;
+                    }}
+                    size="small"
+                  >
+                    {countryCodes.map((country, idx) => (
+                      <MenuItem key={country.code + country.label + idx} value={country.code}>
+                        <ListItemIcon sx={{ minWidth: 32 }}>{country.flag}</ListItemIcon>
+                        {country.label} (+{country.code})
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+                <TextField
+                  required
+                  label="Teléfono"
+                  name="telefono"
+                  id="telefono"
+                  value={formData.telefono}
+                  onChange={e => {
+                    const val = e.target.value.replace(/\D/g, '');
+                    setFormData(prev => ({ ...prev, telefono: val.slice(0, 10) }));
+                  }}
+                  inputProps={{ maxLength: 10, inputMode: 'numeric', pattern: '[0-9]*' }}
+                  disabled={loading || phoneVerified}
+                  sx={{ width: '60%', pb: '2px' }}
+                  size="small"
+                />
+              </Box>
               <Box sx={{ my: 2 }}>
-                <Button onClick={sendVerificationCode} disabled={loading || phoneVerified || !formData.phone} variant="outlined">
+                <Button
+                  onClick={sendVerificationCode}
+                  disabled={loading || phoneVerified || !(formData.lada && formData.telefono.length === 10)}
+                  variant="outlined"
+                  fullWidth
+                  sx={{ mb: confirmationResult && !phoneVerified ? 2 : 0 }}
+                >
                   {phoneVerified ? 'Teléfono verificado' : 'Verificar teléfono por SMS'}
                 </Button>
                 <div ref={recaptchaContainerRef} id="recaptcha-container"></div>
                 {confirmationResult && !phoneVerified && (
-                  <Box sx={{ mt: 2 }}>
+                  <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
                     <TextField
                       label="Código SMS"
                       value={smsCode}
                       onChange={e => setSmsCode(e.target.value)}
                       disabled={loading}
+                      fullWidth
                     />
-                    <Button onClick={verifyCode} disabled={loading || phoneVerified || !smsCode} sx={{ ml: 2 }} variant="contained">
+                    <Button
+                      onClick={verifyCode}
+                      disabled={loading || phoneVerified || !smsCode}
+                      variant="contained"
+                      fullWidth
+                    >
                       Confirmar código
                     </Button>
                   </Box>
@@ -231,7 +308,7 @@ const Register: React.FC = () => {
                 required
                 fullWidth
                 id="email"
-                label="Email Address"
+                label="Correo electrónico"
                 name="email"
                 autoComplete="email"
                 value={formData.email}
@@ -243,7 +320,7 @@ const Register: React.FC = () => {
                 required
                 fullWidth
                 name="password"
-                label="Password"
+                label="Contraseña"
                 type="password"
                 id="password"
                 autoComplete="new-password"
@@ -256,7 +333,7 @@ const Register: React.FC = () => {
                 required
                 fullWidth
                 name="confirmPassword"
-                label="Confirm Password"
+                label="Confirmar contraseña"
                 type="password"
                 id="confirmPassword"
                 value={formData.confirmPassword}
@@ -287,11 +364,11 @@ const Register: React.FC = () => {
                 sx={{ mt: 2, mb: 2, py: 1.5 }}
                 disabled={loading}
               >
-                {loading ? <CircularProgress size={24} /> : 'Sign Up'}
+                {loading ? <CircularProgress size={24} /> : 'Crear cuenta'}
               </Button>
               <Box sx={{ textAlign: 'center' }}>
                 <Link component={RouterLink} to="/login" variant="body2">
-                  {"Already have an account? Sign In"}
+                  {"¿Ya tienes cuenta? Inicia sesión"}
                 </Link>
               </Box>
             </Box>

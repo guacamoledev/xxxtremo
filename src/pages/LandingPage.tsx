@@ -1,4 +1,5 @@
 import React from 'react';
+import logo from '/src/logo.png';
 import {
   AppBar,
   Toolbar,
@@ -18,10 +19,9 @@ const LandingPage: React.FC = () => {
       {/* Menu superior */}
       <AppBar position="static" color="primary" elevation={0}>
         <Toolbar>
-          <SportsKabaddi sx={{ mr: 1 }} />
-          <Typography variant="h6" sx={{ flexGrow: 1 }}>
-            XXXTREMO
-          </Typography>
+          <Box sx={{ flexGrow: 1 }}>
+            <img src={logo} alt="XXXTREMO Logo" style={{ height: 'auto', verticalAlign: 'middle' }} />
+          </Box>
           <Button color="inherit" startIcon={<Login />} href="/login">
             Iniciar sesión
           </Button>

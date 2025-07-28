@@ -70,11 +70,9 @@ const Login: React.FC = () => {
         <Card sx={{ mt: 8, width: '100%', maxWidth: 400 }}>
           <CardContent sx={{ p: 4 }}>
             <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 3 }}>
-              <Typography component="h1" variant="h4" sx={{ color: 'primary.main', fontWeight: 'bold', mb: 1 }}>
-                XXXTREMO
-              </Typography>
+              <img src="../src/logo.png" alt="XXXTREMO Logo" style={{ width: 'auto', height: 'auto', marginBottom: 8 }} />
               <Typography variant="h6" color="textSecondary">
-                Sign in to your account
+                Ingresa a tu cuenta
               </Typography>
             </Box>
 
@@ -90,7 +88,7 @@ const Login: React.FC = () => {
                 required
                 fullWidth
                 id="email"
-                label="Email Address"
+                label="Correo electrónico"
                 name="email"
                 autoComplete="email"
                 autoFocus
@@ -103,7 +101,7 @@ const Login: React.FC = () => {
                 required
                 fullWidth
                 name="password"
-                label="Password"
+                label="Contraseña"
                 type="password"
                 id="password"
                 autoComplete="current-password"
@@ -118,11 +116,11 @@ const Login: React.FC = () => {
                 sx={{ mt: 3, mb: 2, py: 1.5 }}
                 disabled={loading}
               >
-                {loading ? <CircularProgress size={24} /> : 'Sign In'}
+                {loading ? <CircularProgress size={24} /> : 'Iniciar sesión'}
               </Button>
               <Box sx={{ textAlign: 'center' }}>
                 <Link component={RouterLink} to="/register" variant="body2">
-                  {"Don't have an account? Sign Up"}
+                  {"¿No tienes una cuenta? Regístrate"}
                 </Link>
               </Box>
             </Box>
