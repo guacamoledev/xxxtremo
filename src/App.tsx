@@ -7,7 +7,7 @@ import { UserRole } from './types';
 
 import theme from './theme';
 import { lazy, Suspense } from 'react';
-const UsersPage = lazy(() => import('./pages/UsersPage'));
+const UsersPage = lazy(() => import('./pages/admin/UsersPage'));
 const LandingPage = lazy(() => import('./pages/LandingPage'));
 const TermsPage = lazy(() => import('./pages/TermsPage'));
 import { AuthProvider } from './contexts/AuthContext';

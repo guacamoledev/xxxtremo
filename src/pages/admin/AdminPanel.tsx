@@ -31,63 +31,63 @@ const AdminPanel: React.FC = () => {
 
   const adminCards = [
     {
-      title: 'Manage Palenques',
-      description: 'Create, edit and manage fighting venues',
-      icon: <Stadium fontSize="large" />,
+      title: 'Gestionar Palenques',
+      description: 'Crea, edita y administra los palenques',
+      icon: <Stadium fontSize="large" />, 
       color: '#1976d2',
       path: '/admin/palenques',
       count: palenques.length,
-      countLabel: 'Active Palenques'
+      countLabel: 'Palenques activos'
     },
     {
-      title: 'Manage Events',
-      description: 'Create and organize cockfighting events',
-      icon: <Event fontSize="large" />,
+      title: 'Gestionar Eventos',
+      description: 'Crea y organiza eventos de peleas',
+      icon: <Event fontSize="large" />, 
       color: '#388e3c',
       path: '/admin/events',
       count: events.length,
-      countLabel: 'Total Events'
+      countLabel: 'Eventos totales'
     },
     {
-      title: 'Manage Fights',
-      description: 'Set up individual fights within events',
-      icon: <SportsMma fontSize="large" />,
+      title: 'Gestionar Peleas',
+      description: 'Configura peleas individuales dentro de los eventos',
+      icon: <SportsMma fontSize="large" />, 
       color: '#f57c00',
       path: '/admin/fights',
       count: fights.length,
-      countLabel: 'Total Fights'
+      countLabel: 'Peleas totales'
     },
     {
-      title: 'Betting Management',
-      description: 'Resolve bets and manage betting outcomes',
-      icon: <Casino fontSize="large" />,
+      title: 'Gestión de Apuestas',
+      description: 'Resuelve apuestas y administra los resultados',
+      icon: <Casino fontSize="large" />, 
       color: '#e91e63',
       path: '/admin/betting',
       count: fights.filter(f => f.status === 'betting_open' || f.status === 'in_progress').length,
-      countLabel: 'Active Betting'
+      countLabel: 'Apuestas activas'
     },
   ];
 
   const quickStats = [
     {
-      label: 'Active Palenques',
+      label: 'Palenques activos',
       value: palenques.filter(p => p.active).length,
       total: palenques.length,
-      icon: <Stadium />,
+      icon: <Stadium />, 
       color: '#1976d2'
     },
     {
-      label: 'Upcoming Events',
+      label: 'Próximos eventos',
       value: events.filter(e => e.status === 'scheduled').length,
       total: events.length,
-      icon: <Event />,
+      icon: <Event />, 
       color: '#388e3c'
     },
     {
-      label: 'Scheduled Fights',
+      label: 'Peleas programadas',
       value: fights.filter(f => f.status === 'scheduled').length,
       total: fights.length,
-      icon: <SportsMma />,
+      icon: <SportsMma />, 
       color: '#f57c00'
     },
   ];
@@ -98,17 +98,17 @@ const AdminPanel: React.FC = () => {
         {/* Header */}
         <Box sx={{ mb: 4 }}>
           <Typography variant="h4" component="h1" gutterBottom>
-            Admin Panel
+            Panel de Administración
           </Typography>
           <Typography variant="subtitle1" color="text.secondary">
-            Welcome back, {currentUser?.name}. Manage your XXXTREMO platform.
+            Bienvenido, {currentUser?.name}. Administra la plataforma XXXTREMO.
           </Typography>
         </Box>
 
         {/* Quick Stats */}
         <Box sx={{ mb: 4 }}>
           <Typography variant="h6" component="h2" gutterBottom sx={{ mb: 2 }}>
-            Quick Stats
+            Estadísticas rápidas
           </Typography>
           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
             {quickStats.map((stat, index) => (
@@ -123,7 +123,7 @@ const AdminPanel: React.FC = () => {
                         {stat.value}
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
-                        of {stat.total} total
+                        de {stat.total} total
                       </Typography>
                     </Box>
                   </Box>
@@ -139,7 +139,7 @@ const AdminPanel: React.FC = () => {
         {/* Admin Actions */}
         <Box sx={{ mb: 4 }}>
           <Typography variant="h6" component="h2" gutterBottom sx={{ mb: 2 }}>
-            Management Tools
+            Herramientas de gestión
           </Typography>
           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
             {adminCards.map((card, index) => (
@@ -182,7 +182,7 @@ const AdminPanel: React.FC = () => {
                     onClick={() => navigate(card.path)}
                     sx={{ bgcolor: card.color }}
                   >
-                    Manage
+                    Gestionar
                   </Button>
                 </CardActions>
               </Card>
@@ -193,7 +193,7 @@ const AdminPanel: React.FC = () => {
         {/* Quick Actions */}
         <Box>
           <Typography variant="h6" component="h2" gutterBottom sx={{ mb: 2 }}>
-            Quick Actions
+            Accesos rápidos
           </Typography>
           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
             <Button
@@ -202,7 +202,7 @@ const AdminPanel: React.FC = () => {
               onClick={() => navigate('/admin/palenques')}
               sx={{ flex: '1 1 200px' }}
             >
-              New Palenque
+              Nuevo Palenque
             </Button>
             <Button
               variant="outlined"
@@ -210,7 +210,7 @@ const AdminPanel: React.FC = () => {
               onClick={() => navigate('/admin/events')}
               sx={{ flex: '1 1 200px' }}
             >
-              New Event
+              Nuevo Evento
             </Button>
             <Button
               variant="outlined"
@@ -218,7 +218,7 @@ const AdminPanel: React.FC = () => {
               onClick={() => navigate('/admin/fights')}
               sx={{ flex: '1 1 200px' }}
             >
-              New Fight
+              Nueva Pelea
             </Button>
             <Button
               variant="outlined"

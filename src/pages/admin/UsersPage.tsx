@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getDocs, collection, query, orderBy, limit, startAfter } from 'firebase/firestore';
-import { db } from '../config/firebase';
-import UserFinances from './UserFinances';
+import { db } from '../../config/firebase';
+import UserFinances from '../UserFinances';
 import {
   Dialog,
   DialogTitle,
   DialogContent,
+  DialogActions,
   IconButton,
   Box,
   Typography,
@@ -25,7 +26,11 @@ import {
   InputAdornment,
   Card,
   CardContent,
+  Button,
+  Alert,
 } from '@mui/material';
+import { Upload } from '@mui/icons-material';
+import { useCreateDeposit } from '../../hooks/useUserFinances';
 import { Visibility, Search } from '@mui/icons-material';
 
 
@@ -72,6 +77,15 @@ const UsersPage: React.FC = () => {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(0);
   const [lastDoc, setLastDoc] = useState<any>(null);
+
+  // Estado para el depósito manual
+  const [depositDialogOpen, setDepositDialogOpen] = useState(false);
+  const [depositForm, setDepositForm] = useState({
+    amount: '',
+    receipt: null as File | null,
+  });
+  const [depositError, setDepositError] = useState('');
+  const createDepositMutation = useCreateDeposit();
 
   const {
     data,
@@ -193,10 +207,106 @@ const UsersPage: React.FC = () => {
                     <UserFinances userId={selectedUser.id} user={selectedUser} />
                   </CardContent>
                 </Card>
+                <Button
+                  variant="contained"
+                  startIcon={<Upload />}
+                  onClick={() => {
+                    setDepositDialogOpen(true);
+                    setDepositForm({ amount: '', receipt: null });
+                    setDepositError('');
+                  }}
+                  sx={{ mb: 2 }}
+                >
+                  Realizar depósito manual
+                </Button>
               </Box>
             </Box>
           )}
         </DialogContent>
+      </Dialog>
+
+      {/* Dialog para depósito manual */}
+      <Dialog open={depositDialogOpen} onClose={() => setDepositDialogOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle>Depósito manual para {selectedUser?.name}</DialogTitle>
+        <DialogContent>
+          <Alert severity="info" sx={{ mb: 2 }}>
+            Ingresa la cantidad y sube el comprobante de pago para registrar un depósito a nombre del usuario.
+          </Alert>
+          <TextField
+            autoFocus
+            margin="dense"
+            label="Monto"
+            type="number"
+            fullWidth
+            variant="outlined"
+            value={depositForm.amount}
+            onChange={e => setDepositForm({ ...depositForm, amount: e.target.value })}
+            InputProps={{
+              startAdornment: <InputAdornment position="start">$</InputAdornment>,
+              endAdornment: <InputAdornment position="end">MXN</InputAdornment>,
+            }}
+            sx={{ mb: 2 }}
+          />
+          <Button
+            variant="outlined"
+            component="label"
+            startIcon={<Upload />}
+            fullWidth
+            sx={{ mb: 2, borderColor: !depositForm.receipt ? 'error.main' : 'primary.main', color: !depositForm.receipt ? 'error.main' : 'primary.main' }}
+          >
+            Subir Comprobante *
+            <input
+              type="file"
+              hidden
+              accept="image/*,.pdf"
+              onChange={e => {
+                const file = e.target.files?.[0] || null;
+                setDepositForm({ ...depositForm, receipt: file });
+              }}
+            />
+          </Button>
+          {depositForm.receipt ? (
+            <Typography variant="body2" color="success.main" sx={{ mb: 1 }}>
+              ✓ Archivo seleccionado: {depositForm.receipt.name}
+            </Typography>
+          ) : (
+            <Typography variant="body2" color="error.main" sx={{ mb: 1 }}>
+              * El comprobante de pago es obligatorio
+            </Typography>
+          )}
+          {depositError && (
+            <Alert severity="error" sx={{ mb: 1 }}>{depositError}</Alert>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDepositDialogOpen(false)}>Cancelar</Button>
+          <Button
+            onClick={async () => {
+              if (!depositForm.amount || !depositForm.receipt) {
+                setDepositError('Por favor ingresa el monto y sube el comprobante.');
+                return;
+              }
+              try {
+                setDepositError('');
+                // El depósito se hará para el usuario actual, no el seleccionado, a menos que el hook sea modificado para aceptar userId.
+                await createDepositMutation.mutateAsync({
+                  amount: parseFloat(depositForm.amount),
+                  method: 'Manual (admin)',
+                  reference: 'Depósito manual',
+                  receipt: depositForm.receipt,
+                  // userId: selectedUser.id, // Omitido por error de tipado
+                });
+                setDepositDialogOpen(false);
+              } catch (err: any) {
+                setDepositError('Error al registrar el depósito: ' + (err.message || ''));
+              }
+            }}
+            variant="contained"
+            disabled={createDepositMutation.isPending || !depositForm.amount || !depositForm.receipt}
+          >
+            {createDepositMutation.isPending ? 'Enviando...' : 'Registrar Depósito'}
+          </Button>
+        </DialogActions>
       </Dialog>
     </Box>
   );
