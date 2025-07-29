@@ -28,21 +28,30 @@ import { usePlaceBet, useBetsByFight } from '../hooks/useFirestore';
 import { useAuth } from '../contexts/AuthContext';
 import type { Fight } from '../types';
 
+import type { Bet } from '../types';
+
 interface BettingCardProps {
   fight: Fight;
   disabled?: boolean;
   isFinished?: boolean;
+  bets?: Bet[];
+  betsLoading?: boolean;
+  betsError?: Error | null;
 }
 
-const BettingCard: React.FC<BettingCardProps> = ({ fight, disabled = false, isFinished = false }) => {
+const BettingCard: React.FC<BettingCardProps> = ({ fight, disabled = false, isFinished = false, bets: betsProp, betsLoading: betsLoadingProp, betsError: betsErrorProp }) => {
   const [open, setOpen] = useState(false);
   const [selectedColor, setSelectedColor] = useState<'red' | 'green' | null>(null);
   const [betAmount, setBetAmount] = useState<number>(100);
   const [error, setError] = useState('');
-  
+
   const { currentUser } = useAuth();
   const placeBetMutation = usePlaceBet();
-  const { data: bets = [], isLoading: betsLoading } = useBetsByFight(fight.id);
+  // Si se pasan bets/betsLoading/betsError como props, usarlos; si no, usar hook interno
+  const { data: betsHook = [], isLoading: betsLoadingHook, error: betsErrorHook } = useBetsByFight(fight.id);
+  const bets = betsProp !== undefined ? betsProp : betsHook;
+  const betsLoading = betsLoadingProp !== undefined ? betsLoadingProp : betsLoadingHook;
+  const betsError = betsErrorProp !== undefined ? betsErrorProp : betsErrorHook;
 
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -143,11 +152,22 @@ const BettingCard: React.FC<BettingCardProps> = ({ fight, disabled = false, isFi
     return color === 'red' ? 'Rojo' : 'Verde';
   };
 
+
   if (betsLoading) {
     return (
       <Card>
         <CardContent sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
           <CircularProgress />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (betsError) {
+    return (
+      <Card>
+        <CardContent>
+          <Alert severity="error">Error al cargar apuestas: {betsError.message}</Alert>
         </CardContent>
       </Card>
     );

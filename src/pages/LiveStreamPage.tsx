@@ -26,7 +26,7 @@ import {
   ExpandLess,
   ExpandMore,
 } from '@mui/icons-material';
-import { useFights, useEvents, usePalenques, useUpdateFightStatus, useStreamingChannels } from '../hooks/useFirestore';
+import { useFights, useEvents, usePalenques, useUpdateFightStatus, useStreamingChannels, useBets } from '../hooks/useFirestore';
 import { useAuth } from '../contexts/AuthContext';
 import BettingCard from '../components/BettingCard';
 import UserBetNotifications from '../components/UserBetNotifications';
@@ -60,6 +60,8 @@ const LiveStreamPage: React.FC = () => {
   const [showInfo, setShowInfo] = useState(false);
   // Estado para controlar qué pelea está expandida
   const [expandedFightId, setExpandedFightId] = useState<string | null>(null);
+  // Estado para saber si el usuario interactuó manualmente con el acordeón
+  const [userToggledAccordion, setUserToggledAccordion] = useState(false);
   
   // Estado para mostrar peleas terminadas con localStorage
   const [showFinishedFights, setShowFinishedFights] = useState(() => {
@@ -186,11 +188,35 @@ const LiveStreamPage: React.FC = () => {
   const sortedActiveFights = activeFights.sort((a, b) => a.fightNumber - b.fightNumber);
   const sortedFinishedFights = finishedFights.sort((a, b) => a.fightNumber - b.fightNumber);
 
-  // Cuando cambian las peleas activas, expandir por defecto la que está en progreso
+
+
+  // Hook de apuestas en tiempo real (todas las apuestas)
+  const { data: allBets = [], isLoading: betsLoading, error: betsError } = useBets();
+
+  // Cuando cambian las peleas activas o el evento, resetear el control manual
   useEffect(() => {
+    setUserToggledAccordion(false);
     const inProgress = sortedActiveFights.find(f => f.status === 'in_progress');
     setExpandedFightId(inProgress ? inProgress.id : null);
   }, [selectedEvent?.id, sortedActiveFights.map(f => f.id + f.status).join()]);
+
+  // Expandir automáticamente el acordeón cuando una pelea pasa a 'betting_open',
+  // y plegar cuando la pelea expandida deja de estar 'betting_open' o 'in_progress',
+  // solo si el usuario no ha interactuado manualmente.
+  useEffect(() => {
+    if (!selectedEvent || userToggledAccordion) return;
+    // Buscar pelea con apuestas abiertas
+    const openFight = sortedActiveFights.find(f => f.status === 'betting_open');
+    if (openFight && expandedFightId !== openFight.id) {
+      setExpandedFightId(openFight.id);
+      return;
+    }
+    // Si la pelea expandida ya no está abierta ni en progreso, plegar
+    const expandedFight = sortedActiveFights.find(f => f.id === expandedFightId);
+    if (expandedFightId && expandedFight && !['betting_open', 'in_progress'].includes(expandedFight.status)) {
+      setExpandedFightId(null);
+    }
+  }, [sortedActiveFights.map(f => f.id + f.status).join(), expandedFightId, selectedEvent, userToggledAccordion]);
 
   const loading = fightsLoading || eventsLoading;
 
@@ -442,36 +468,45 @@ const LiveStreamPage: React.FC = () => {
                       </Typography>
                       <Divider sx={{ my: { xs: 1.5, sm: 2 } }} />
                       <Box sx={{ display: 'flex', flexDirection: 'column', gap: { xs: 2, sm: 3 } }}>
-                        {sortedActiveFights.map((fight) => (
-                          <Accordion
-                            key={fight.id}
-                            expanded={expandedFightId === fight.id}
-                            onChange={(_e, expanded) => setExpandedFightId(expanded ? fight.id : null)}
-                            disableGutters
-                            sx={{
-                              boxShadow: 0,
-                              border: 1,
-                              borderColor: expandedFightId === fight.id ? 'primary.main' : 'grey.200',
-                              bgcolor: expandedFightId === fight.id ? 'primary.50' : 'background.paper',
-                            }}
-                          >
-                            <AccordionSummary
-                              expandIcon={<ExpandMoreIcon />}
-                              aria-controls={`fight-panel-${fight.id}-content`}
-                              id={`fight-panel-${fight.id}-header`}
+                        {sortedActiveFights.map((fight) => {
+                          const bets = allBets.filter(bet => bet.fightId === fight.id);
+                          return (
+                            <Accordion
+                              key={fight.id}
+                              expanded={expandedFightId === fight.id}
+                              onChange={(_e, expanded) => {
+                                setExpandedFightId(expanded ? fight.id : null);
+                                setUserToggledAccordion(true);
+                              }}
+                              disableGutters
+                              sx={{
+                                boxShadow: 0,
+                                border: 1,
+                                borderColor: expandedFightId === fight.id ? 'primary.main' : 'grey.200',
+                                bgcolor: expandedFightId === fight.id ? 'primary.50' : 'background.paper',
+                              }}
                             >
-                              <Typography sx={{ fontWeight: fight.status === 'in_progress' ? 'bold' : 'normal', color: fight.status === 'in_progress' ? 'primary.main' : 'inherit' }}>
-                                {`Pelea #${fight.fightNumber}`} {fight.status === 'in_progress' && '(En vivo)'}
-                              </Typography>
-                            </AccordionSummary>
-                            <AccordionDetails>
-                              <BettingCard 
-                                fight={fight}
-                                disabled={!currentUser || currentUser.role === 'admin'}
-                              />
-                            </AccordionDetails>
-                          </Accordion>
-                        ))}
+                              <AccordionSummary
+                                expandIcon={<ExpandMoreIcon />}
+                                aria-controls={`fight-panel-${fight.id}-content`}
+                                id={`fight-panel-${fight.id}-header`}
+                              >
+                                <Typography sx={{ fontWeight: fight.status === 'in_progress' ? 'bold' : 'normal', color: fight.status === 'in_progress' ? 'primary.main' : 'inherit' }}>
+                                  {`Pelea #${fight.fightNumber}`} {fight.status === 'in_progress' && '(En vivo)'}
+                                </Typography>
+                              </AccordionSummary>
+                              <AccordionDetails>
+                                <BettingCard 
+                                  fight={fight}
+                                  bets={bets}
+                                  betsLoading={betsLoading}
+                                  betsError={betsError}
+                                  disabled={!currentUser || currentUser.role === 'admin'}
+                                />
+                              </AccordionDetails>
+                            </Accordion>
+                          );
+                        })}
                       </Box>
                     </Box>
                   )}

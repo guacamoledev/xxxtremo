@@ -513,13 +513,96 @@ export const useBets = () => {
   };
 };
 
-// Obtener apuestas por pelea
+// Obtener apuestas por pelea (estático)
 export const useBetsByFight = (fightId: string) => {
   return useQuery({
     queryKey: queryKeys.betsByFight(fightId),
     queryFn: () => betService.getByFight(fightId),
     enabled: !!fightId,
   });
+};
+
+// Obtener apuestas por pelea en tiempo real
+export const useBetsByFightRealtime = (fightId: string) => {
+  const [data, setData] = useState<Bet[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
+  const { showError } = useNotification();
+
+  const MAX_RETRIES = 3;
+
+  const startListener = useCallback(() => {
+    if (!fightId) {
+      setData([]);
+      setIsLoading(false);
+      setError(null);
+      return () => {};
+    }
+    const betsRef = collection(db, 'bets');
+    const q = query(betsRef, where('fightId', '==', fightId));
+
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        try {
+          const bets = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+          } as Bet));
+          setData(bets);
+          setError(null);
+          setIsLoading(false);
+          setRetryCount(0);
+        } catch (err) {
+          console.error('❌ useBetsByFightRealtime: Error processing snapshot:', err);
+          setError(err as Error);
+          setIsLoading(false);
+        }
+      },
+      (firestoreError) => {
+        const errorInfo = analyzeRealtimeError(firestoreError);
+        console.error('❌ useBetsByFightRealtime: Listener error:', errorInfo);
+        if (errorInfo.shouldRetry && retryCount < MAX_RETRIES) {
+          console.log(`🔄 useBetsByFightRealtime: Retrying (attempt ${retryCount + 1}/${MAX_RETRIES}) in ${errorInfo.retryDelay}ms`);
+          setRetryCount(prev => prev + 1);
+          setTimeout(() => {
+            startListener();
+          }, errorInfo.retryDelay);
+        } else {
+          setError(new Error(errorInfo.message));
+          setIsLoading(false);
+          if (errorInfo.isNetworkError) {
+            showError(`Error de conexión en apuestas por pelea: ${errorInfo.message}`, 8000);
+          }
+          // Fallback: fetch estático
+          betService.getByFight(fightId)
+            .then(bets => {
+              setData(bets);
+              setError(null);
+            })
+            .catch(fallbackErr => {
+              setError(fallbackErr as Error);
+            });
+        }
+      }
+    );
+    return unsubscribe;
+  }, [fightId, retryCount, showError]);
+
+  useEffect(() => {
+    const unsubscribe = startListener();
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, [startListener, fightId]);
+
+  return {
+    data,
+    isLoading,
+    error,
+    status: isLoading ? 'pending' : error ? 'error' : 'success'
+  };
 };
 
 // Obtener apuestas por usuario
