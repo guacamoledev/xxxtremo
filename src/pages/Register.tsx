@@ -94,7 +94,7 @@ const Register: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name || !formData.email || !formData.password || !formData.confirmPassword || !formData.birthdate || !formData.lada || !formData.telefono) {
-      setError('Please fill in all fields');
+      setError('Por favor completa todos los campos');
       return;
     }
     if (!/^[0-9]{10}$/.test(formData.telefono)) {
@@ -102,15 +102,15 @@ const Register: React.FC = () => {
       return;
     }
     if (!acceptTerms) {
-      setError('You must confirm you are over 18 and accept the terms and conditions');
+      setError('Debes confirmar que tienes más de 18 años y aceptar los términos y condiciones');
       return;
     }
     if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match');
+      setError('Las contraseñas no coinciden');
       return;
     }
     if (formData.password.length < 6) {
-      setError('Password must be at least 6 characters');
+      setError('La contraseña debe tener al menos 6 caracteres');
       return;
     }
     if (!/^\+[1-9]{1}[0-9]{7,14}$/.test(formData.phone)) {
@@ -118,7 +118,7 @@ const Register: React.FC = () => {
       return;
     }
     if (!phoneVerified) {
-      setError('You must verify your phone number via SMS');
+      setError('Debes verificar tu número de teléfono por SMS');
       return;
     }
     try {
@@ -127,7 +127,7 @@ const Register: React.FC = () => {
       await register(formData.email, formData.password, formData.name, formData.phone, formData.birthdate);
       navigate('/dashboard');
     } catch (error: any) {
-      setError('Failed to create account: ' + (error.message || 'Unknown error'));
+      setError('No se pudo crear la cuenta: ' + (error.message || 'Error desconocido'));
     } finally {
       setLoading(false);
     }

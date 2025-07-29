@@ -115,7 +115,7 @@ const FinancesPage: React.FC = () => {
   // Estados para formularios
   const [depositForm, setDepositForm] = useState({
     amount: '',
-    bankReference: '',
+    reference: '',
     receipt: null as File | null
   });
   
@@ -133,7 +133,7 @@ const FinancesPage: React.FC = () => {
 
   const handleDepositSubmit = async () => {
     try {
-      if (!depositForm.amount || !depositForm.bankReference) {
+      if (!depositForm.amount || !depositForm.reference) {
         alert('Por favor completa todos los campos requeridos');
         return;
       }
@@ -146,14 +146,14 @@ const FinancesPage: React.FC = () => {
       await createDepositMutation.mutateAsync({
         amount: parseFloat(depositForm.amount),
         method: 'Transferencia Bancaria',
-        reference: depositForm.bankReference,
+        reference: depositForm.reference,
         receipt: depositForm.receipt
       });
 
       // Éxito
       alert('¡Depósito enviado! Será revisado por nuestro equipo.');
       setDepositDialogOpen(false);
-      setDepositForm({ amount: '', bankReference: '', receipt: null });
+      setDepositForm({ amount: '', reference: '', receipt: null });
     } catch (error) {
       console.error('Error creating deposit:', error);
       alert('Error al enviar el depósito. Inténtalo de nuevo.');
@@ -749,7 +749,6 @@ const FinancesPage: React.FC = () => {
             <Alert severity="info" sx={{ mb: 3 }}>
               Primero realiza la transferencia a nuestra cuenta y luego llena este formulario.
             </Alert>
-            
             <TextField
               autoFocus
               margin="dense"
@@ -765,9 +764,15 @@ const FinancesPage: React.FC = () => {
               }}
               sx={{ mb: 2 }}
             />
-            
-
-            
+            <TextField
+              margin="dense"
+              label="Referencia de Transferencia"
+              fullWidth
+              variant="outlined"
+              value={depositForm.reference}
+              onChange={(e) => setDepositForm({...depositForm, reference: e.target.value})}
+              sx={{ mb: 2 }}
+            />
             <Button
               variant="outlined"
               component="label"
@@ -805,7 +810,7 @@ const FinancesPage: React.FC = () => {
             <Button 
               onClick={handleDepositSubmit} 
               variant="contained"
-              disabled={createDepositMutation.isPending || !depositForm.receipt || !depositForm.amount || !depositForm.bankReference}
+              disabled={createDepositMutation.isPending || !depositForm.receipt || !depositForm.amount || !depositForm.reference}
             >
               {createDepositMutation.isPending ? 'Enviando...' : 'Enviar Depósito'}
             </Button>
