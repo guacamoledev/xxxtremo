@@ -242,8 +242,8 @@ const LiveStreamPage: React.FC = () => {
         </Box>
       ) : (
         <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-          {/* Área de Streaming Principal */}
-          <Box sx={{ width: '100%' }}>
+          {/* Área de Streaming Principal sticky */}
+          <Box sx={{ width: '100%', position: 'sticky', top: { xs: 56, sm: 64 }, zIndex: 10, background: 'white' }}>
             <Paper sx={{ borderRadius: 0, overflow: 'hidden', boxShadow: 0 }}>
               {/* Video Player Area */}
               <Box 

@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { auth } from '../config/firebase';
 import { RecaptchaVerifier, signInWithPhoneNumber } from 'firebase/auth';
 import type { ConfirmationResult } from 'firebase/auth';
+import logo from '/public/logo.png';
 import {
   Box,
   Card,
@@ -193,7 +194,7 @@ const Register: React.FC = () => {
         <Card sx={{ mt: 8, width: '100%', maxWidth: 400 }}>
           <CardContent sx={{ p: 4 }}>
             <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 3 }}>
-              <img src="/public/logo.png" alt="XXXTREMO Logo" style={{ width: 'auto', height: 'auto', marginBottom: 8 }} />
+              <img src={logo} alt="XXXTREMO Logo" style={{ height: 'auto', verticalAlign: 'middle' }} />
               <Typography variant="h6" color="textSecondary">
                 Crea tu cuenta
               </Typography>

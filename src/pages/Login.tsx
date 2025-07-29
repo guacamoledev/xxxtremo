@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import logo from '/public/logo.png';
 import {
   Box,
   Card,
@@ -70,7 +71,7 @@ const Login: React.FC = () => {
         <Card sx={{ mt: 8, width: '100%', maxWidth: 400 }}>
           <CardContent sx={{ p: 4 }}>
             <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 3 }}>
-              <img src="../public/logo.png" alt="XXXTREMO Logo" style={{ width: 'auto', height: 'auto', marginBottom: 8 }} />
+              <img src={logo} alt="XXXTREMO Logo" style={{ height: 'auto', verticalAlign: 'middle' }} />
               <Typography variant="h6" color="textSecondary">
                 Ingresa a tu cuenta
               </Typography>
