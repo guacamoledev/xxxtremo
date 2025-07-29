@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+// ...existing code...
 import {
   Box,
   Typography,
@@ -28,11 +28,12 @@ import {
 } from '@mui/icons-material';
 import { useFights, useEvents, usePalenques, useUpdateFightStatus, useStreamingChannels, useBets } from '../hooks/useFirestore';
 import { useAuth } from '../contexts/AuthContext';
-import BettingCard from '../components/BettingCard';
+import React, { Suspense, lazy, useState, useEffect } from 'react';
+// ...existing code...
+const BettingCard = lazy(() => import('../components/BettingCard'));
+const UserBetsPanel = lazy(() => import('../components/UserBetsPanel'));
 import UserBetNotifications from '../components/UserBetNotifications';
-
 import { UserZeroBalanceNotificationWithClose } from './Dashboard';
-import UserBetsPanel from '../components/UserBetsPanel';
 import { useRejectedBetNotifications } from '../hooks/useRejectedBetNotifications';
 import { useFightResultNotifications } from '../hooks/useFightResultNotifications';
 import dayjs from 'dayjs';
@@ -496,13 +497,15 @@ const LiveStreamPage: React.FC = () => {
                                 </Typography>
                               </AccordionSummary>
                               <AccordionDetails>
-                                <BettingCard 
-                                  fight={fight}
-                                  bets={bets}
-                                  betsLoading={betsLoading}
-                                  betsError={betsError}
-                                  disabled={!currentUser || currentUser.role === 'admin'}
-                                />
+                                <Suspense fallback={<div>Cargando apuesta...</div>}>
+                                  <BettingCard 
+                                    fight={fight}
+                                    bets={bets}
+                                    betsLoading={betsLoading}
+                                    betsError={betsError}
+                                    disabled={!currentUser || currentUser.role === 'admin'}
+                                  />
+                                </Suspense>
                               </AccordionDetails>
                             </Accordion>
                           );
@@ -548,12 +551,13 @@ const LiveStreamPage: React.FC = () => {
                         <Divider sx={{ my: { xs: 1.5, sm: 2 } }} />
                         <Box sx={{ display: 'flex', flexDirection: 'column', gap: { xs: 2, sm: 3 } }}>
                           {sortedFinishedFights.map((fight) => (
-                            <BettingCard 
-                              key={fight.id} 
-                              fight={fight}
-                              disabled={!currentUser || currentUser.role === 'admin'}
-                              isFinished={true}
-                            />
+                            <Suspense fallback={<div>Cargando apuesta...</div>} key={fight.id}>
+                              <BettingCard 
+                                fight={fight}
+                                disabled={!currentUser || currentUser.role === 'admin'}
+                                isFinished={true}
+                              />
+                            </Suspense>
                           ))}
                         </Box>
                       </Collapse>
@@ -638,7 +642,9 @@ const LiveStreamPage: React.FC = () => {
 
       {/* Panel de apuestas del usuario (solo para viewers) */}
       {currentUser?.role === 'viewer' && (
-        <UserBetsPanel selectedEventId={selectedEvent?.id || null} />
+        <Suspense fallback={<div>Cargando panel de apuestas...</div>}>
+          <UserBetsPanel selectedEventId={selectedEvent?.id || null} />
+        </Suspense>
       )}
     </Box>
   );
