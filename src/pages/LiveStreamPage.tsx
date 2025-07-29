@@ -9,8 +9,12 @@ import {
   Divider,
   IconButton,
   Collapse,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
   useMediaQuery,
 } from '@mui/material';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { useTheme } from '@mui/material/styles';
 import type { Theme } from '@mui/material';
 import {
@@ -54,6 +58,8 @@ const LiveStreamPage: React.FC = () => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
+  // Estado para controlar qué pelea está expandida
+  const [expandedFightId, setExpandedFightId] = useState<string | null>(null);
   
   // Estado para mostrar peleas terminadas con localStorage
   const [showFinishedFights, setShowFinishedFights] = useState(() => {
@@ -179,6 +185,12 @@ const LiveStreamPage: React.FC = () => {
   // Ordenar peleas por número
   const sortedActiveFights = activeFights.sort((a, b) => a.fightNumber - b.fightNumber);
   const sortedFinishedFights = finishedFights.sort((a, b) => a.fightNumber - b.fightNumber);
+
+  // Cuando cambian las peleas activas, expandir por defecto la que está en progreso
+  useEffect(() => {
+    const inProgress = sortedActiveFights.find(f => f.status === 'in_progress');
+    setExpandedFightId(inProgress ? inProgress.id : null);
+  }, [selectedEvent?.id, sortedActiveFights.map(f => f.id + f.status).join()]);
 
   const loading = fightsLoading || eventsLoading;
 
@@ -428,16 +440,37 @@ const LiveStreamPage: React.FC = () => {
                       >
                         📊 Peleas Activas ({sortedActiveFights.length} pelea{sortedActiveFights.length !== 1 ? 's' : ''} disponible{sortedActiveFights.length !== 1 ? 's' : ''})
                       </Typography>
-                      
                       <Divider sx={{ my: { xs: 1.5, sm: 2 } }} />
-                      
                       <Box sx={{ display: 'flex', flexDirection: 'column', gap: { xs: 2, sm: 3 } }}>
                         {sortedActiveFights.map((fight) => (
-                          <BettingCard 
-                            key={fight.id} 
-                            fight={fight}
-                            disabled={!currentUser || currentUser.role === 'admin'}
-                          />
+                          <Accordion
+                            key={fight.id}
+                            expanded={expandedFightId === fight.id}
+                            onChange={(_e, expanded) => setExpandedFightId(expanded ? fight.id : null)}
+                            disableGutters
+                            sx={{
+                              boxShadow: 0,
+                              border: 1,
+                              borderColor: expandedFightId === fight.id ? 'primary.main' : 'grey.200',
+                              bgcolor: expandedFightId === fight.id ? 'primary.50' : 'background.paper',
+                            }}
+                          >
+                            <AccordionSummary
+                              expandIcon={<ExpandMoreIcon />}
+                              aria-controls={`fight-panel-${fight.id}-content`}
+                              id={`fight-panel-${fight.id}-header`}
+                            >
+                              <Typography sx={{ fontWeight: fight.status === 'in_progress' ? 'bold' : 'normal', color: fight.status === 'in_progress' ? 'primary.main' : 'inherit' }}>
+                                {`Pelea #${fight.fightNumber}`} {fight.status === 'in_progress' && '(En vivo)'}
+                              </Typography>
+                            </AccordionSummary>
+                            <AccordionDetails>
+                              <BettingCard 
+                                fight={fight}
+                                disabled={!currentUser || currentUser.role === 'admin'}
+                              />
+                            </AccordionDetails>
+                          </Accordion>
                         ))}
                       </Box>
                     </Box>

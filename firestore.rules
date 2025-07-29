@@ -39,7 +39,7 @@ service cloud.firestore {
     match /users/{userId} {
       allow read: if isAuthenticated();
       allow create: if isAuthenticated() && request.auth.uid == userId;
-      allow update: if isOwner(userId) || isUserAdmin() || isUserFinance();
+      allow update: if isUserAdmin() || isUserFinance() || (isOwner(userId) && request.resource.data.balance == resource.data.balance);
       allow delete: if isUserAdmin();
     }
     
