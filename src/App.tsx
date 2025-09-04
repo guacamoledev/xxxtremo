@@ -81,9 +81,9 @@ function App() {
                   <Route path="/betting" element={<ProtectedRoute><Layout><BettingPage /></Layout></ProtectedRoute>} />
                   <Route path="/users" element={<ProtectedRoute><Layout><UsersPage /></Layout></ProtectedRoute>} />
                   <Route path="/admin" element={<ProtectedRoute><Layout><AdminPanel /></Layout></ProtectedRoute>} />
-                  <Route path="/admin/palenques" element={<ProtectedRoute><Layout><PalenquesPage /></Layout></ProtectedRoute>} />
-                  <Route path="/admin/events" element={<ProtectedRoute><Layout><EventsPage /></Layout></ProtectedRoute>} />
-                  <Route path="/admin/fights" element={<ProtectedRoute><Layout><FightsPage /></Layout></ProtectedRoute>} />
+                  <Route path="/admin/palenques" element={<ProtectedRoute roles={[UserRole.ADMIN, UserRole.FINANCE, UserRole.STREAMING]}><Layout><PalenquesPage /></Layout></ProtectedRoute>} />
+                  <Route path="/admin/events" element={<ProtectedRoute roles={[UserRole.ADMIN, UserRole.FINANCE, UserRole.STREAMING]}><Layout><EventsPage /></Layout></ProtectedRoute>} />
+                  <Route path="/admin/fights" element={<ProtectedRoute roles={[UserRole.ADMIN, UserRole.FINANCE, UserRole.STREAMING]}><Layout><FightsPage /></Layout></ProtectedRoute>} />
                   <Route path="/admin/betting" element={<ProtectedRoute><Layout><BettingAdminPage /></Layout></ProtectedRoute>} />
                   <Route path="/admin/finances" element={<ProtectedRoute><Layout><FinanceAdminPage /></Layout></ProtectedRoute>} />
                   <Route path="/eventos" element={<ProtectedRoute><Layout><EventsCalendarPage /></Layout></ProtectedRoute>} />
