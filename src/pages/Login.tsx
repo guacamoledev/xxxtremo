@@ -8,11 +8,10 @@ import {
   Button,
   Typography,
   Alert,
-  Link,
   CircularProgress,
   Container,
 } from '@mui/material';
-import { useNavigate, Link as RouterLink } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
 const Login: React.FC = () => {
@@ -119,11 +118,13 @@ const Login: React.FC = () => {
               >
                 {loading ? <CircularProgress size={24} /> : 'Iniciar sesión'}
               </Button>
+              {/*
               <Box sx={{ textAlign: 'center' }}>
                 <Link component={RouterLink} to="/register" variant="body2">
                   {"¿No tienes una cuenta? Regístrate"}
                 </Link>
               </Box>
+              */}
             </Box>
           </CardContent>
         </Card>

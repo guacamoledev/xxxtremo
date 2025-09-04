@@ -23,7 +23,7 @@ const Register = lazy(() => import('./pages/Register'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const BettingPage = lazy(() => import('./pages/BettingPage'));
 const MyBetsPage = lazy(() => import('./pages/MyBetsPage'));
-const BettingAdminPage = lazy(() => import('./pages/BettingAdminPage'));
+const BettingAdminPage = lazy(() => import('./pages/admin/BettingAdminPage'));
 const LiveStreamPage = lazy(() => import('./pages/LiveStreamPage'));
 const FinancesPage = lazy(() => import('./pages/FinancesPage'));
 // Pages

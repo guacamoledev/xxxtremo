@@ -34,9 +34,11 @@ const LandingPage: React.FC = () => {
           <Typography variant="h3" fontWeight="bold" gutterBottom>
             PELEAS DE GALLOS EN VIVO
           </Typography>
+          {/**
           <Button variant="contained" color="primary" size="large" href="/register">
             ¡REGÍSTRATE!
           </Button>
+          */}
         </Box>
 
         {/* Sección de tres columnas */}
@@ -97,11 +99,11 @@ const LandingPage: React.FC = () => {
           </Paper>
         </Box>
 
-        <Box sx={{ textAlign: 'center', mb: 8 }}>
+        {/* <Box sx={{ textAlign: 'center', mb: 8 }}>
           <Button variant="contained" color="secondary" size="large" href="/register">
             ¡REGÍSTRATE YA!
           </Button>
-        </Box>
+        </Box> */}
       </Container>
 
       {/* Footer */}
