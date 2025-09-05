@@ -24,6 +24,9 @@ dist-ssr
 *.sln
 *.sw?
 
+# Firebase Hosting cache
+.firebase/hosting.ZGlzdA.cache
+
 # Firebase config
 src/config/firebase.ts
 

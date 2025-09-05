@@ -14,8 +14,8 @@ import { AuthProvider } from './contexts/AuthContext';
 import { NotificationProvider } from './contexts/NotificationContext';
 import Layout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
-import UserProfilePage from './pages/UserProfilePage';
-import EventsCalendarPage from './pages/EventsCalendarPage';
+const UserProfilePage = lazy(() => import('./pages/UserProfilePage'));
+const EventsCalendarPage = lazy(() => import('./pages/EventsCalendarPage'));
 
 // Pages
 const Login = lazy(() => import('./pages/Login'));
@@ -35,10 +35,12 @@ const EventsPage = lazy(() => import('./pages/admin/EventsPage'));
 const FightsPage = lazy(() => import('./pages/admin/FightsPage'));
 const FinanceAdminPage = lazy(() => import('./pages/admin/FinanceAdminPage'));
 
-// Debug utilities for development
-import './utils/debugAuth';
-import './utils/debugReactQuery';
-import './utils/userAdmin';
+// Debug utilities for development (solo en entorno de desarrollo)
+if (import.meta.env.DEV) {
+  import('./utils/debugAuth');
+  import('./utils/debugReactQuery');
+  import('./utils/userAdmin');
+}
 
 // Create a client for React Query
 const queryClient = new QueryClient({

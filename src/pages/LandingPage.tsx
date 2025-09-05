@@ -5,13 +5,12 @@ import {
   Toolbar,
   IconButton,
   Typography,
-  Button,
   Box,
   Container,
   Paper,
   Link,
 } from '@mui/material';
-import { Login, Facebook, Instagram, YouTube } from '@mui/icons-material';
+import { Facebook, Instagram, YouTube } from '@mui/icons-material';
 
 const LandingPage: React.FC = () => {
   return (
@@ -22,9 +21,9 @@ const LandingPage: React.FC = () => {
           <Box sx={{ flexGrow: 1 }}>
             <img src={logo} alt="XXXTREMO Logo" style={{ height: 'auto', verticalAlign: 'middle' }} />
           </Box>
-          <Button color="inherit" startIcon={<Login />} href="/login">
+          {/* <Button color="inherit" startIcon={<Login />} href="/login">
             Iniciar sesión
-          </Button>
+          </Button> */}
         </Toolbar>
       </AppBar>
 
@@ -35,7 +34,7 @@ const LandingPage: React.FC = () => {
             PELEAS DE GALLOS EN VIVO
           </Typography>
           <Box sx={{ mt: 4, mb: 2 }}>
-            <Paper elevation={6} sx={{ p: 4, bgcolor: '#fffbe6', border: '2px solid #ff9800' }}>
+            <Paper elevation={6} sx={{ p: 4, bgcolor: '#97979aff', border: '2px solid #ff9800' }}>
               <Typography variant="h5" color="error" fontWeight="bold" gutterBottom>
                 Plataforma en mantenimiento
               </Typography>
