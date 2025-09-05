@@ -158,11 +158,11 @@ const Dashboard: React.FC = () => {
                     <CardMedia
                       component="img"
                       height="200"
-                      image={event.imageUrl || '/placeholder-cockfight.jpg'}
+                      image={event.imageUrl || '/defaultImage.png'}
                       alt={event.name}
                       sx={{ bgcolor: 'grey.300', objectFit: 'cover' }}
                       onError={(e) => {
-                        e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDMyMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIzMjAiIGhlaWdodD0iMjAwIiBmaWxsPSIjRjVGNUY1Ii8+CjxwYXRoIGQ9Ik0xNDAgODBMMTYwIDEyMEgxMjBMMTQwIDgwWiIgZmlsbD0iI0Q3MkQyMCIvPgo8cGF0aCBkPSJNMTgwIDgwTDIwMCAxMjBIMTYwTDE4MCA4MFoiIGZpbGw9IiMyRTdEMzIiLz4KPHR5cGUgZGF0YS10ZXh0PSLwn5CUIiBzdHlsZT0iZm9udC1zaXplOjQ4cHg7IiB4PSIxNDAiIHk9IjEwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzc1NzU3NSI+8J+QlDwvdGV4dD4KPHR5cGUgZGF0YS10ZXh0PSJFdmVudG8gZGUgUGVsZWFzIiBzdHlsZT0iZm9udC1zaXplOjE0cHg7Zm9udC13ZWlnaHQ6Ym9sZDsiIHg9IjE2MCIgeT0iMTUwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjNzU3NTc1Ij5FdmVudG8gZGUgUGVsZWFzPC90ZXh0Pgo8L3N2Zz4K';
+                        e.currentTarget.src = '/defaultImage.png';
                       }}
                     />
                     <CardContent sx={{ flexGrow: 1 }}>
@@ -171,11 +171,13 @@ const Dashboard: React.FC = () => {
                           label={event.eventType} 
                           size="small" 
                           color={event.eventType === 'special' ? 'secondary' : 'default'}
+                          sx={{ color: 'grey.800' }}
                         />
                         <Chip 
                           label={getEventStatusLabel(event.status)} 
                           size="small" 
                           color={getEventStatusColor(event.status)}
+                          sx={{ color: 'grey.800' }}
                         />
                       </Box>
                       <Typography gutterBottom variant="h6" component="h3">
@@ -200,16 +202,7 @@ const Dashboard: React.FC = () => {
                         ${event.entryCost} MXN
                       </Typography>
                     </CardContent>
-                    <Box sx={{ p: 2, pt: 0 }}>
-                      <Button
-                        variant="contained"
-                        fullWidth
-                        startIcon={<LiveTv />}
-                        onClick={() => navigate('/live')}
-                      >
-                        View Event
-                      </Button>
-                    </Box>
+                    {/* No mostrar botón View Event para eventos pasados */}
                   </Card>
                 ))
               )}
@@ -226,14 +219,14 @@ const Dashboard: React.FC = () => {
                     <CardMedia
                       component="img"
                       height="200"
-                      image={event.imageUrl || '/placeholder-cockfight.jpg'}
+                      image={event.imageUrl || '/defaultImage.png'}
                       alt={event.name}
                       sx={{ bgcolor: 'grey.300', objectFit: 'cover' }}
                       onError={(e) => {
-                        e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDMyMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIzMjAiIGhlaWdodD0iMjAwIiBmaWxsPSIjRjVGNUY1Ii8+CjxwYXRoIGQ9Ik0xNDAgODBMMTYwIDEyMEgxMjBMMTQwIDgwWiIgZmlsbD0iI0Q3MkQyMCIvPgo8cGF0aCBkPSJNMTgwIDgwTDIwMCAxMjBIMTYwTDE4MCA4MFoiIGZpbGw9IiMyRTdEMzIiLz4KPHR5cGUgZGF0YS10ZXh0PSLwn5CUIiBzdHlsZT0iZm9udC1zaXplOjQ4cHg7IiB4PSIxNDAiIHk9IjEwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzc1NzU3NSI+8J+QlDwvdGV4dD4KPHR5cGUgZGF0YS10ZXh0PSJFdmVudG8gZGUgUGVsZWFzIiBzdHlsZT0iZm9udC1zaXplOjE0cHg7Zm9udC13ZWlnaHQ6Ym9sZDsiIHg9IjE2MCIgeT0iMTUwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjNzU3NTc1Ij5FdmVudG8gZGUgUGVsZWFzPC90ZXh0Pgo8L3N2Zz4K';
+                        e.currentTarget.src = '/defaultImage.png';
                       }}
                     />
-                    <CardContent sx={{ flexGrow: 1 }}>
+                    <CardContent sx={{ flexGrow: 1, color: 'grey.800' }}>
                       <Box sx={{ display: 'flex', alignItems: 'center', mb: 1, gap: 1 }}>
                         <Chip 
                           label={event.eventType} 
@@ -246,23 +239,23 @@ const Dashboard: React.FC = () => {
                           color={getEventStatusColor(event.status)}
                         />
                       </Box>
-                      <Typography gutterBottom variant="h6" component="h3">
+                      <Typography gutterBottom variant="h6" component="h3" sx={{ color: 'grey.800' }}>
                         {event.name}
                       </Typography>
-                      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                      <Typography variant="body2" sx={{ mb: 2, color: 'grey.800' }}>
                         {event.description}
                       </Typography>
                       <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
                         <CalendarToday fontSize="small" sx={{ mr: 1, color: 'text.secondary' }} />
-                        <Typography variant="body2">{formatDate(event.date)}</Typography>
+                        <Typography variant="body2" sx={{ color: 'grey.800' }}>{formatDate(event.date)}</Typography>
                       </Box>
                       <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
                         <AccessTime fontSize="small" sx={{ mr: 1, color: 'text.secondary' }} />
-                        <Typography variant="body2">{formatTime(event.startTime)}</Typography>
+                        <Typography variant="body2" sx={{ color: 'grey.800' }}>{formatTime(event.startTime)}</Typography>
                       </Box>
                       <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                         <People fontSize="small" sx={{ mr: 1, color: 'text.secondary' }} />
-                        <Typography variant="body2">{event.requiredFights} Peleas Obligatorias</Typography>
+                        <Typography variant="body2" sx={{ color: 'grey.800' }}>{event.requiredFights} Peleas Obligatorias</Typography>
                       </Box>
                       <Typography variant="h6" color="primary" sx={{ mb: 2 }}>
                         ${event.entryCost} MXN

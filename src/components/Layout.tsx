@@ -172,7 +172,9 @@ const Layout: React.FC<LayoutProps> = ({ children, noPadding = false }) => {
           >
             <MenuIcon />
           </IconButton>
-          <Box sx={{ flexGrow: 1, display: 'flex', alignItems: 'center', gap: { xs: 2.5, sm: 4 } }}>
+          <Box sx={{ flexGrow: 1, display: 'flex', alignItems: 'center', gap: { xs: 2.5, sm: 4 }, cursor: 'pointer' }}
+            onClick={() => navigate('/dashboard')}
+          >
             <img
               src="/logo.png"
               alt="XXXTREMO Logo"
