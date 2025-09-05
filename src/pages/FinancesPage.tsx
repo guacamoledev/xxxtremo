@@ -50,6 +50,7 @@ import {
   useUserTransactions,
 } from '../hooks/useUserFinances';
 import dayjs from 'dayjs';
+import { traducirErrorFirebase } from '../utils/traducirErrorFirebase';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -162,9 +163,9 @@ const FinancesPage: React.FC = () => {
       alert('¡Depósito enviado! Será revisado por nuestro equipo.');
       setDepositDialogOpen(false);
       setDepositForm({ amount: '', reference: '', receipt: null });
-    } catch (error) {
-      console.error('Error creating deposit:', error);
-      alert('Error al enviar el depósito. Inténtalo de nuevo.');
+    } catch (error: any) {
+      console.error('Error creando depósito:', error);
+      alert(traducirErrorFirebase(error));
     }
   };
 
@@ -193,8 +194,8 @@ const FinancesPage: React.FC = () => {
       setWithdrawDialogOpen(false);
       setWithdrawForm({ amount: '', bank: '', accountNumber: '', clabe: '', holderName: '' });
     } catch (error: any) {
-      console.error('Error creating withdrawal:', error);
-      alert(error.message || 'Error al solicitar el retiro. Inténtalo de nuevo.');
+      console.error('Error creando retiro:', error);
+      alert(traducirErrorFirebase(error));
     }
   };
 

@@ -1,3 +1,4 @@
+import { traducirErrorFirebase } from '../utils/traducirErrorFirebase';
 import React from 'react';
 import {
   Box,
@@ -229,7 +230,7 @@ const MyBetsPage: React.FC = () => {
             Mis Apuestas
           </Typography>
           <Alert severity="error">
-            Error al cargar tus apuestas: {error.message}
+            Error al cargar tus apuestas: {traducirErrorFirebase(error)}
           </Alert>
         </Box>
       </Container>

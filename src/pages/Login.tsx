@@ -1,3 +1,4 @@
+import { traducirErrorFirebase } from '../utils/traducirErrorFirebase';
 import React, { useState } from 'react';
 import logo from '/public/logo.png';
 import {
@@ -38,19 +39,7 @@ const Login: React.FC = () => {
       await login(email, password);
       navigate('/dashboard');
     } catch (error: any) {
-      let msg = 'Error al iniciar sesión.';
-      if (error.code === 'auth/user-not-found') {
-        msg = 'No existe una cuenta con este correo.';
-      } else if (error.code === 'auth/wrong-password') {
-        msg = 'Contraseña incorrecta.';
-      } else if (error.code === 'auth/invalid-email') {
-        msg = 'Correo electrónico inválido.';
-      } else if (error.code === 'auth/too-many-requests') {
-        msg = 'Demasiados intentos fallidos. Intenta más tarde.';
-      } else if (error.message) {
-        msg = error.message;
-      }
-      setError(msg);
+      setError(traducirErrorFirebase(error));
     } finally {
       setLoading(false);
     }

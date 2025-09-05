@@ -1,3 +1,4 @@
+import { traducirErrorFirebase } from '../utils/traducirErrorFirebase';
 import React, { useState, useRef, useEffect } from 'react';
 import { auth } from '../config/firebase';
 import { RecaptchaVerifier, signInWithPhoneNumber } from 'firebase/auth';
@@ -127,7 +128,7 @@ const Register: React.FC = () => {
       await register(formData.email, formData.password, formData.name, formData.phone, formData.birthdate);
       navigate('/dashboard');
     } catch (error: any) {
-      setError('No se pudo crear la cuenta: ' + (error.message || 'Error desconocido'));
+      setError('No se pudo crear la cuenta: ' + traducirErrorFirebase(error));
     } finally {
       setLoading(false);
     }
@@ -159,7 +160,7 @@ const Register: React.FC = () => {
       setConfirmationResult(result);
       setError('Código enviado por SMS. Ingresa el código para verificar tu número.');
     } catch (err: any) {
-      setError('Error enviando SMS: ' + (err.message || ''));
+      setError('Error enviando SMS: ' + traducirErrorFirebase(err));
     } finally {
       setLoading(false);
     }

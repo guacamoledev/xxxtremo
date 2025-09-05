@@ -1,3 +1,4 @@
+import { traducirErrorFirebase } from '../utils/traducirErrorFirebase';
 
 import React, { useState, useEffect } from 'react';
 import {
@@ -80,7 +81,7 @@ const EventsCalendarPage: React.FC = () => {
       setForm({ name: '', date: dayjs().format('YYYY-MM-DD'), location: '', image: null, imageUrl: '' });
       setDialogOpen(false);
     } catch (err) {
-      alert('Error al guardar el evento');
+      alert('Error al guardar el evento: ' + traducirErrorFirebase(err));
     } finally {
       setLoading(false);
     }

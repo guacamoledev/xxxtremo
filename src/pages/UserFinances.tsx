@@ -1,3 +1,4 @@
+import { traducirErrorFirebase } from '../utils/traducirErrorFirebase';
 import React, { useState } from 'react';
 import { Box, Typography, Chip, TableContainer, Paper, Table, TableHead, TableRow, TableCell, TableBody, Button, CircularProgress, Alert } from '@mui/material';
 import { useBetsByUser } from '../hooks/useFirestore';
@@ -84,7 +85,7 @@ const UserFinances: React.FC<UserFinancesProps> = ({ userId, user: initialUser }
       await queryClient.invalidateQueries({ queryKey: ['user', userId] });
       setTimeout(() => setDeactivateSuccess(false), 2000);
     } catch (err) {
-      setDeactivateError('Error al desactivar usuario: ' + (err as any).message);
+      setDeactivateError('Error al desactivar usuario: ' + traducirErrorFirebase(err));
     } finally {
       setDeactivating(false);
     }
@@ -112,7 +113,7 @@ const UserFinances: React.FC<UserFinancesProps> = ({ userId, user: initialUser }
       setSuccess(true);
       setTimeout(() => setSuccess(false), 2000);
     } catch (err) {
-      alert('Error al ajustar el balance: ' + (err as any).message);
+      alert('Error al ajustar el balance: ' + traducirErrorFirebase(err));
     } finally {
       setLoading(false);
     }
