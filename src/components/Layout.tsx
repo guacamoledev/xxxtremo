@@ -121,7 +121,10 @@ const Layout: React.FC<LayoutProps> = ({ children, noPadding = false }) => {
           <ListItem key={item.text} disablePadding>
             <ListItemButton
               selected={location.pathname === item.path}
-              onClick={() => navigate(item.path)}
+              onClick={() => {
+                navigate(item.path);
+                if (window.innerWidth < 600) setMobileOpen(false);
+              }}
               sx={{
                 '&.Mui-selected': {
                   backgroundColor: 'primary.main',
