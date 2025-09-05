@@ -18,8 +18,6 @@ import {
   Avatar,
 } from '@mui/material';
 import {
-  TrendingUp,
-  TrendingDown,
   Casino as BetIcon,
   CheckCircle,
   Cancel,
@@ -67,15 +65,15 @@ const MyBetsPage: React.FC = () => {
 
   // Calcular estadísticas básicas
   const totalBets = bets.length;
-  const wonBets = bets.filter(bet => bet.status === 'won').length;
-  const lostBets = bets.filter(bet => bet.status === 'lost').length;
+  // const wonBets = bets.filter(bet => bet.status === 'won').length;
+  // const lostBets = bets.filter(bet => bet.status === 'lost').length;
   const pendingBets = bets.filter(bet => bet.status === 'pending' || bet.status === 'matched').length;
   
   // Usar matchedAmount para cálculos precisos, excluyendo apuestas reembolsadas
   const totalWagered = bets.filter(bet => bet.status !== 'refunded').reduce((sum, bet) => sum + (bet.matchedAmount || bet.amount), 0);
   const totalWon = bets.filter(bet => bet.status === 'won').reduce((sum, bet) => sum + (bet.profit || 0), 0);
   const totalLost = bets.filter(bet => bet.status === 'lost').reduce((sum, bet) => sum + (bet.matchedAmount || bet.amount), 0);
-  const netProfit = totalWon - totalLost;
+  // const netProfit = totalWon - totalLost;
 
   // Nuevas métricas para el resumen financiero expandido
   const totalIngresado = userDeposits.reduce((sum: number, deposit: any) => sum + deposit.amount, 0);
@@ -130,7 +128,7 @@ const MyBetsPage: React.FC = () => {
   const saldoEsperado = totalIngresado - totalRetirado - retirosPendientes - totalLost + totalWon - apuestasActivas;
   const diferencia = saldoEsperado - saldoActual;
 
-  const winRate = totalBets > 0 ? (wonBets / (wonBets + lostBets)) * 100 : 0;
+  // const winRate = totalBets > 0 ? (wonBets / (wonBets + lostBets)) * 100 : 0;
 
   const getStatusIcon = (status: Bet['status']) => {
     switch (status) {
@@ -240,14 +238,11 @@ const MyBetsPage: React.FC = () => {
 
   return (
     <Container
-      maxWidth={false}
-      disableGutters
+      maxWidth="lg"
       sx={{
-        px: { xs: 0, sm: 0 },
         pt: 'env(safe-area-inset-top)',
         pb: 'env(safe-area-inset-bottom)',
         minHeight: '100vh',
-        width: '100vw',
         overflowX: 'hidden',
       }}
     >
@@ -263,9 +258,9 @@ const MyBetsPage: React.FC = () => {
         {/* Notificaciones de usuario */}
         <UserBetNotifications />
 
-        {/* Estadísticas */}
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 4 }}>
-          <Card sx={{ minWidth: 200, flex: 1 }}>
+        {/* Estadísticas (solo Total Apuestas) - Responsive igual que AdminPanel */}
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3, mb: 4 }}>
+          <Card sx={{ flex: '1 1 300px', minWidth: '250px' }}>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
                 <Avatar sx={{ bgcolor: 'primary.main', mr: 2 }}>
@@ -275,54 +270,6 @@ const MyBetsPage: React.FC = () => {
                   <Typography variant="h5">{totalBets}</Typography>
                   <Typography variant="body2" color="text.secondary">
                     Total Apuestas
-                  </Typography>
-                </Box>
-              </Box>
-            </CardContent>
-          </Card>
-
-          <Card sx={{ minWidth: 200, flex: 1 }}>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                <Avatar sx={{ bgcolor: 'success.main', mr: 2 }}>
-                  <TrendingUp />
-                </Avatar>
-                <Box>
-                  <Typography variant="h5">{wonBets}</Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Ganadas
-                  </Typography>
-                </Box>
-              </Box>
-            </CardContent>
-          </Card>
-
-          <Card sx={{ minWidth: 200, flex: 1 }}>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                <Avatar sx={{ bgcolor: 'error.main', mr: 2 }}>
-                  <TrendingDown />
-                </Avatar>
-                <Box>
-                  <Typography variant="h5">{lostBets}</Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Perdidas
-                  </Typography>
-                </Box>
-              </Box>
-            </CardContent>
-          </Card>
-
-          <Card sx={{ minWidth: 200, flex: 1 }}>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                <Avatar sx={{ bgcolor: wonBets + lostBets > 0 && winRate >= 50 ? 'success.main' : 'error.main', mr: 2 }}>
-                  {winRate >= 50 ? <TrendingUp /> : <TrendingDown />}
-                </Avatar>
-                <Box>
-                  <Typography variant="h5">{winRate.toFixed(1)}%</Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Tasa de Éxito
                   </Typography>
                 </Box>
               </Box>
@@ -343,46 +290,13 @@ const MyBetsPage: React.FC = () => {
               </Alert>
             )}
             
-            {/* Primera fila - Métricas principales */}
-            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3, mb: 3 }}>
+            {/* Primera fila - Métricas principales (solo Total Retirado, Retiros Pendientes y Apuestas Activas) */}
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr' }, gap: 3, mb: 3 }}>
               <Box>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                  <Typography variant="body1">💰 Total Ingresado:</Typography>
-                  <Typography variant="body1" fontWeight="medium" color="success.main">
-                    ${totalIngresado.toLocaleString()} MXN
-                  </Typography>
-                </Box>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                  <Typography variant="body1">💸 Total Retirado:</Typography>
-                  <Typography variant="body1" fontWeight="medium" color="error.main">
-                    ${totalRetirado.toLocaleString()} MXN
-                  </Typography>
-                </Box>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                   <Typography variant="body1">⏳ Retiros Pendientes:</Typography>
                   <Typography variant="body1" fontWeight="medium" color="warning.main">
                     ${retirosPendientes.toLocaleString()} MXN
-                  </Typography>
-                </Box>
-              </Box>
-              
-              <Box>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                  <Typography variant="body1">🎯 Total Apostado:</Typography>
-                  <Typography variant="body1" fontWeight="medium">
-                    ${totalWagered.toLocaleString()} MXN
-                  </Typography>
-                </Box>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                  <Typography variant="body1">✅ Total Ganado:</Typography>
-                  <Typography variant="body1" fontWeight="medium" color="success.main">
-                    ${totalWon.toLocaleString()} MXN
-                  </Typography>
-                </Box>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                  <Typography variant="body1">❌ Total Perdido:</Typography>
-                  <Typography variant="body1" fontWeight="medium" color="error.main">
-                    ${totalLost.toLocaleString()} MXN
                   </Typography>
                 </Box>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
@@ -394,10 +308,10 @@ const MyBetsPage: React.FC = () => {
               </Box>
             </Box>
 
-            {/* Segunda fila - Saldos y diferencias */}
+            {/* Segunda fila - Solo Saldo Actual */}
             <Box sx={{ 
               display: 'grid', 
-              gridTemplateColumns: { xs: '1fr', md: '1fr 1fr 1fr' }, 
+              gridTemplateColumns: { xs: '1fr', md: '1fr' }, 
               gap: 2, 
               p: 2, 
               bgcolor: 'darkgrey.50', 
@@ -412,41 +326,9 @@ const MyBetsPage: React.FC = () => {
                   ${saldoActual.toLocaleString()} MXN
                 </Typography>
               </Box>
-              
-              <Box sx={{ textAlign: 'center' }}>
-                <Typography variant="subtitle2" color="text.primary">
-                  Saldo Esperado
-                </Typography>
-                <Typography variant="h6" fontWeight="bold">
-                  ${saldoEsperado.toLocaleString()} MXN
-                </Typography>
-              </Box>
-              
-              <Box sx={{ textAlign: 'center' }}>
-                <Typography variant="subtitle2" color="text.primary">
-                  Diferencia
-                </Typography>
-                <Typography 
-                  variant="h6" 
-                  fontWeight="bold"
-                  color={diferencia === 0 ? 'text.primary' : diferencia > 0 ? 'success.main' : 'error.main'}
-                >
-                  {diferencia >= 0 ? '+' : ''}${diferencia.toLocaleString()} MXN
-                </Typography>
-              </Box>
             </Box>
 
-            {/* Resumen final */}
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', pt: 2, borderTop: 1, borderColor: 'divider' }}>
-              <Typography variant="h6">Ganancia Neta:</Typography>
-              <Typography 
-                variant="h6" 
-                fontWeight="bold"
-                color={netProfit >= 0 ? 'success.main' : 'error.main'}
-              >
-                {netProfit >= 0 ? '+' : ''}${netProfit.toLocaleString()} MXN
-              </Typography>
-            </Box>
+
             
             {/* Alertas informativas */}
             {pendingBets > 0 && (
