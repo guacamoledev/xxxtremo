@@ -1,9 +1,19 @@
 // Traduce errores comunes de Firebase a mensajes en español para el usuario final
 export function traducirErrorFirebase(error: any): string {
+
   if (!error || typeof error !== 'object') return 'Ocurrió un error inesperado. Intenta de nuevo.';
   const code = error.code || error.message || '';
 
   if (typeof code !== 'string') return 'Ocurrió un error inesperado. Intenta de nuevo.';
+
+  // Errores de autenticación comunes en login
+  if (
+    code.includes('auth/invalid-credential') ||
+    code.includes('auth/wrong-password') ||
+    code.includes('auth/user-not-found')
+  ) {
+    return 'Usuario o contraseña incorrectos.';
+  }
 
   if (code.includes('network') || code.includes('unavailable')) {
     return 'No se pudo conectar con el servidor. Verifica tu conexión e inténtalo de nuevo.';
