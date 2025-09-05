@@ -29,7 +29,6 @@ import {
   LinearProgress,
   useMediaQuery,
   useTheme,
-  Snackbar,
 } from '@mui/material';
 import {
   AccountBalance,
@@ -141,7 +140,6 @@ const FinancesPage: React.FC = () => {
     setCurrentTab(newValue);
   };
 
-  const [snackbarOpen, setSnackbarOpen] = useState(false);
   const handleDepositSubmit = async () => {
     try {
       if (!depositForm.amount || !depositForm.reference) {
