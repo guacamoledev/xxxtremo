@@ -29,6 +29,7 @@ import {
   LinearProgress,
   useMediaQuery,
   useTheme,
+  Snackbar,
 } from '@mui/material';
 import {
   AccountBalance,
@@ -140,6 +141,7 @@ const FinancesPage: React.FC = () => {
     setCurrentTab(newValue);
   };
 
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
   const handleDepositSubmit = async () => {
     try {
       if (!depositForm.amount || !depositForm.reference) {
@@ -796,8 +798,28 @@ const FinancesPage: React.FC = () => {
             </Box>
           </DialogTitle>
           <DialogContent>
-            <Alert severity="info" sx={{ mb: 3 }}>
-              Primero realiza la transferencia a nuestra cuenta y luego llena este formulario.
+            <Box sx={{ mb: 3, p: 2, border: '2px solid #1976d2', borderRadius: 2, bgcolor: 'background.paper', boxShadow: 2 }}>
+              <Typography variant="h6" sx={{ fontWeight: 'bold', color: 'primary.main', mb: 1 }}>
+                Datos para Depósitos
+              </Typography>
+              <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                <strong>Banco:</strong> Banregio<br />
+                <strong>Tarjeta:</strong> 4741 7406 0220 7885<br />
+                <strong>CLABE:</strong> 058320000000893020<br />
+                <strong>Beneficiario:</strong> XXXTREMO
+              </Typography>
+            </Box>
+            <Alert 
+              severity="warning" 
+              icon={false}
+              sx={{ mb: 3, bgcolor: 'error.main', color: 'white', fontWeight: 'bold', fontSize: 18, border: '2px solid #ff1100ff', boxShadow: 3, textAlign: 'center', letterSpacing: 0.5 }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
+                <TrendingUp sx={{ fontSize: 32, color: 'white' }} />
+                <span style={{ fontWeight: 700, textTransform: 'uppercase' }}>
+                  ¡IMPORTANTE! Primero realiza la transferencia a nuestra cuenta y luego llena este formulario.
+                </span>
+              </Box>
             </Alert>
             <TextField
               autoFocus
