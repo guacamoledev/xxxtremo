@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import {
+  CircularProgress,
   Box,
   Typography,
   Card,
@@ -588,9 +589,10 @@ const BettingAdminPage: React.FC = () => {
                           
                           {fightSpecificBets.length === 0 ? (
                             betsLoading ? (
-                              <Alert severity="info">
-                                Cargando apuestas...
-                              </Alert>
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 1 }}>
+                                <CircularProgress size={20} />
+                                <span>Cargando apuestas...</span>
+                              </Box>
                             ) : (
                               <Alert severity="info">
                                 No hay apuestas registradas para esta pelea

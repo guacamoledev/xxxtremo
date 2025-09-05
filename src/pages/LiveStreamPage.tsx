@@ -29,6 +29,7 @@ import {
 import { useFights, useEvents, usePalenques, useUpdateFightStatus, useStreamingChannels, useBets } from '../hooks/useFirestore';
 import { useAuth } from '../contexts/AuthContext';
 import React, { Suspense, lazy, useState, useEffect } from 'react';
+import { CircularProgress } from '@mui/material';
 // ...existing code...
 const BettingCard = lazy(() => import('../components/BettingCard'));
 const UserBetsPanel = lazy(() => import('../components/UserBetsPanel'));
@@ -497,7 +498,7 @@ const LiveStreamPage: React.FC = () => {
                                 </Typography>
                               </AccordionSummary>
                               <AccordionDetails>
-                                <Suspense fallback={<div>Cargando apuesta...</div>}>
+                                <Suspense fallback={<Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 80 }}><CircularProgress size={28} /><span style={{ marginLeft: 8 }}>Cargando apuesta...</span></Box>}>
                                   <BettingCard 
                                     fight={fight}
                                     bets={bets}
@@ -551,7 +552,7 @@ const LiveStreamPage: React.FC = () => {
                         <Divider sx={{ my: { xs: 1.5, sm: 2 } }} />
                         <Box sx={{ display: 'flex', flexDirection: 'column', gap: { xs: 2, sm: 3 } }}>
                           {sortedFinishedFights.map((fight) => (
-                            <Suspense fallback={<div>Cargando apuesta...</div>} key={fight.id}>
+                            <Suspense fallback={<Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 80 }}><CircularProgress size={28} /><span style={{ marginLeft: 8 }}>Cargando apuesta...</span></Box>} key={fight.id}>
                               <BettingCard 
                                 fight={fight}
                                 disabled={!currentUser || currentUser.role === 'admin'}
@@ -642,7 +643,7 @@ const LiveStreamPage: React.FC = () => {
 
       {/* Panel de apuestas del usuario (solo para viewers) */}
       {currentUser?.role === 'viewer' && (
-        <Suspense fallback={<div>Cargando panel de apuestas...</div>}>
+        <Suspense fallback={<Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 80 }}><CircularProgress size={28} /><span style={{ marginLeft: 8 }}>Cargando panel de apuestas...</span></Box>}>
           <UserBetsPanel selectedEventId={selectedEvent?.id || null} />
         </Suspense>
       )}

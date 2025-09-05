@@ -1,6 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider } from '@mui/material/styles';
-import { CssBaseline } from '@mui/material';
+import { CssBaseline, CircularProgress, Box } from '@mui/material';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import ReportsPage from './pages/ReportsPage';
 import { UserRole } from './types';
@@ -68,7 +68,12 @@ function App() {
         <NotificationProvider>
           <AuthProvider>
             <Router>
-              <Suspense fallback={<div>Cargando...</div>}>
+              <Suspense fallback={
+                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '40vh' }}>
+                  <CircularProgress size={32} />
+                  <span style={{ marginTop: 16, color: '#888' }}>Cargando aplicación...</span>
+                </Box>
+              }>
                 <Routes>
                   {/* Landing page y términos */}
                   <Route path="/" element={<LandingPage />} />
