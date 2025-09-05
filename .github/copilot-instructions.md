@@ -24,7 +24,7 @@ This is a live streaming betting platform for cockfighting events (palenques) bu
 
 ## User Roles
 - Admin: Full system access, can correct fight results
-- Finance: Manage deposits/withdrawals, approve transactions
+- Finance: Manage deposits/withdrawals, approve transactions, manage events, fights, assign winners (Finance has all Streaming permissions)
 - Streaming: Manage events, fights, assign winners
 - Viewer: Place bets, watch streams, manage account
 

@@ -24,3 +24,10 @@ dist-ssr
 *.sln
 *.sw?
 
+# Firebase config
+src/config/firebase.ts
+
+# Env files
+.env
+.env.*
+

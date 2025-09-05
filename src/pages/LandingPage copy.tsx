@@ -34,18 +34,6 @@ const LandingPage: React.FC = () => {
           <Typography variant="h3" fontWeight="bold" gutterBottom>
             PELEAS DE GALLOS EN VIVO
           </Typography>
-          <Box sx={{ mt: 4, mb: 2 }}>
-            <Paper elevation={6} sx={{ p: 4, bgcolor: '#fffbe6', border: '2px solid #ff9800' }}>
-              <Typography variant="h5" color="error" fontWeight="bold" gutterBottom>
-                Plataforma en mantenimiento
-              </Typography>
-              <Typography variant="body1" color="text.primary">
-                La plataforma XXXTREMO se encuentra en mantenimiento desde el viernes 5 de septiembre 2025.<br/>
-                Estaremos de regreso el domingo 7 de septiembre 2025 a las 5:00 AM.<br/>
-                ¡Gracias por tu comprensión!
-              </Typography>
-            </Paper>
-          </Box>
           {/**
           <Button variant="contained" color="primary" size="large" href="/register">
             ¡REGÍSTRATE!
