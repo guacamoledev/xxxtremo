@@ -1,14 +1,28 @@
 
 import React from 'react';
-import { Container, Typography, Box } from '@mui/material';
+import { Container, Typography, Box, Button } from '@mui/material';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import { useNavigate } from 'react-router-dom';
+import Layout from '../components/Layout';
 
-const TermsPage: React.FC = () => (
-  <Container maxWidth="md" sx={{ py: 8 }}>
-    <Box>
-      <Typography variant="h3" gutterBottom fontWeight="bold">
-        Términos y Condiciones
-      </Typography>
-      {/* ...existing code... */}
+const TermsPage: React.FC = () => {
+  const navigate = useNavigate();
+  return (
+    <Layout>
+      <Container maxWidth="md" sx={{ py: 8 }}>
+        <Box>
+          <Button
+            variant="outlined"
+            startIcon={<ArrowBackIcon />}
+            sx={{ mb: 3 }}
+            onClick={() => navigate(-1)}
+          >
+            Regresar
+          </Button>
+          <Typography variant="h3" gutterBottom fontWeight="bold">
+            Términos y Condiciones
+          </Typography>
+          {/* ...existing code... */}
       <Typography variant="body2" paragraph>
         1. Estos Términos y Condiciones aplican a cualquier uso de nuestros servicios. Para artículos promocionales, pueden aplicar términos adicionales. Al utilizar nuestra aplicación, visitar el Sitio y/o registrarse y/o utilizar nuestros servicios, usted acepta y está obligado por:
       </Typography>
@@ -211,7 +225,10 @@ const TermsPage: React.FC = () => (
         Si tienes dudas, contáctanos en soporte@xxxtremo.com
       </Typography>
     </Box>
-  </Container>
-);
+
+    </Container>
+    </Layout>
+  );
+};
 
 export default TermsPage;

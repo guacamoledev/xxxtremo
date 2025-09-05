@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { ThemeProvider } from '@mui/material/styles';
 import { CssBaseline, CircularProgress, Box } from '@mui/material';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { useEffect } from 'react';
 import ReportsPage from './pages/ReportsPage';
 import { UserRole } from './types';
 
@@ -61,6 +62,17 @@ const queryClient = new QueryClient({
 });
 
 function App() {
+  useEffect(() => {
+    const script = document.createElement('script');
+    script.async = true;
+    script.src = 'https://embed.tawk.to/63d190bfc2f1ac1e202f9d49/1gnl9qrcd';
+    script.charset = 'UTF-8';
+    script.setAttribute('crossorigin', '*');
+    document.body.appendChild(script);
+    return () => {
+      document.body.removeChild(script);
+    };
+  }, []);
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider theme={theme}>
@@ -95,16 +107,16 @@ function App() {
                   <Route path="/admin/finances" element={<ProtectedRoute><Layout><FinanceAdminPage /></Layout></ProtectedRoute>} />
                   <Route path="/eventos" element={<ProtectedRoute><Layout><EventsCalendarPage /></Layout></ProtectedRoute>} />
                   <Route path="/perfil" element={<ProtectedRoute><Layout><UserProfilePage /></Layout></ProtectedRoute>} />
-        <Route
-          path="/reports"
-          element={
-            <ProtectedRoute roles={[UserRole.ADMIN, UserRole.FINANCE]}>
-              <Layout>
-                <ReportsPage />
-              </Layout>
-            </ProtectedRoute>
-          }
-        />
+                  <Route
+                    path="/reports"
+                    element={
+                      <ProtectedRoute roles={[UserRole.ADMIN, UserRole.FINANCE]}>
+                        <Layout>
+                          <ReportsPage />
+                        </Layout>
+                      </ProtectedRoute>
+                    }
+                  />
                   <Route path="/live" element={<ProtectedRoute><Layout noPadding><LiveStreamPage /></Layout></ProtectedRoute>} />
                   <Route path="/history" element={<ProtectedRoute><Layout><MyBetsPage /></Layout></ProtectedRoute>} />
                   <Route path="/finances" element={<ProtectedRoute><Layout><FinancesPage /></Layout></ProtectedRoute>} />

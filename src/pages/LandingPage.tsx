@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import logo from '/public/logo.png';
+import logo from '/logo.png';
 import {
   AppBar,
   Toolbar,
@@ -154,6 +154,5 @@ const LandingPage: React.FC = () => {
       </Box>
     </Box>
   );
-};
-
+}
 export default LandingPage;
