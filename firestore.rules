@@ -75,7 +75,7 @@ service cloud.firestore {
     match /deposits/{depositId} {
       // Permitir leer si eres dueño o finance/admin
       allow read: if (isAuthenticated() && isOwner(resource.data.userId)) || isUserFinance();
-      allow create: if isAuthenticated() && isOwner(request.resource.data.userId);
+      allow create: if isAuthenticated() && (isOwner(request.resource.data.userId) || isUserAdmin() || isUserFinance());
       // Permitir al dueño actualizar solo el campo 'receipt' de su propio depósito
       allow update: if isUserFinance() || (isOwner(resource.data.userId) &&
         request.resource.data.keys().hasOnly(['userId','userName','userEmail','amount','method','reference','receipt','status','createdAt','commission','netAmount']) &&

@@ -31,7 +31,6 @@ import {
   Alert,
 } from '@mui/material';
 import { Upload } from '@mui/icons-material';
-import { useCreateDeposit } from '../../hooks/useUserFinances';
 import { useAuth } from '../../contexts/AuthContext';
 import { Visibility, Search } from '@mui/icons-material';
 
@@ -87,7 +86,6 @@ const UsersPage: React.FC = () => {
     receipt: null as File | null,
   });
   const [depositError, setDepositError] = useState('');
-  const createDepositMutation = useCreateDeposit();
   const { currentUser } = useAuth();
 
   const {
@@ -295,23 +293,24 @@ const UsersPage: React.FC = () => {
               }
               try {
                 setDepositError('');
-                // 1. Subir el comprobante a Storage
-                const storage = getStorage();
-                const storageRef = ref(storage, `deposit-receipts/${selectedUser.id}/${Date.now()}_${depositForm.receipt.name}`);
-                await uploadBytes(storageRef, depositForm.receipt);
-                const receiptUrl = await getDownloadURL(storageRef);
-                // 2. Crear el depósito en Firestore
-                await addDoc(collection(db, 'deposits'), {
+                // 1. Crear el depósito en Firestore (sin receiptUrl)
+                const depositRef = await addDoc(collection(db, 'deposits'), {
                   userId: selectedUser.id,
                   amount: parseFloat(depositForm.amount),
                   method: `Manual (${currentUser?.email || 'admin'})`,
                   reference: 'Depósito manual',
-                  receiptUrl,
                   createdAt: serverTimestamp(),
                   status: 'approved',
                   approvedBy: currentUser?.email || 'admin',
                 });
-                // 3. Actualizar el saldo del usuario
+                // 2. Subir el comprobante a Storage en la ruta permitida por las reglas
+                const storage = getStorage();
+                const storageRef = ref(storage, `receipts/deposits/${selectedUser.id}/${depositRef.id}/${depositForm.receipt.name}`);
+                await uploadBytes(storageRef, depositForm.receipt);
+                const receiptUrl = await getDownloadURL(storageRef);
+                // 3. Actualizar el depósito con la URL del comprobante
+                await updateDoc(depositRef, { receiptUrl });
+                // 4. Actualizar el saldo del usuario
                 const userRef = doc(db, 'users', selectedUser.id);
                 await updateDoc(userRef, {
                   balance: (selectedUser.balance || 0) + parseFloat(depositForm.amount),

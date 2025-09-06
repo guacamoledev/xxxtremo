@@ -9,10 +9,8 @@ service firebase.storage {
 
     // Reglas para comprobantes de depósitos
     match /receipts/deposits/{userId}/{depositId}/{fileName} {
-      // El dueño puede leer y escribir su comprobante
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-      // Admin y finance pueden leer cualquier comprobante
-      allow read: if request.auth != null && getUserRole() in ['ADMIN', 'FINANCE'];
+      // El dueño, admin y finance pueden leer y escribir comprobantes
+  allow read, write: if request.auth != null && (request.auth.uid == userId || getUserRole() in ['admin', 'finance']);
     }
   }
 }
