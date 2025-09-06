@@ -800,25 +800,6 @@ function FightsPage() {
 
               <Box sx={{ display: 'flex', gap: 2 }}>
                 <Box sx={{ flex: 1 }}>
-                  <Typography variant="subtitle1" gutterBottom color="primary">
-                    Gallo Rojo
-                  </Typography>
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                    <TextField
-                      label="Nombre del Partido"
-                      fullWidth
-                      value={formData.cock1.name}
-                      onChange={(e) => setFormData({
-                        ...formData,
-                        cock1: { ...formData.cock1, name: e.target.value }
-                      })}
-                      required
-                    />
-                    
-                  </Box>
-                </Box>
-
-                <Box sx={{ flex: 1 }}>
                   <Typography variant="subtitle1" gutterBottom color="secondary">
                     Gallo Verde
                   </Typography>
@@ -830,6 +811,24 @@ function FightsPage() {
                       onChange={(e) => setFormData({
                         ...formData,
                         cock2: { ...formData.cock2, name: e.target.value }
+                      })}
+                      required
+                    />
+                  </Box>
+                </Box>
+
+                <Box sx={{ flex: 1 }}>
+                  <Typography variant="subtitle1" gutterBottom color="primary">
+                    Gallo Rojo
+                  </Typography>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <TextField
+                      label="Nombre del Partido"
+                      fullWidth
+                      value={formData.cock1.name}
+                      onChange={(e) => setFormData({
+                        ...formData,
+                        cock1: { ...formData.cock1, name: e.target.value }
                       })}
                       required
                     />

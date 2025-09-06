@@ -89,12 +89,16 @@ const Layout: React.FC<LayoutProps> = ({ children, noPadding = false }) => {
 
     if (
       currentUser?.role === UserRole.ADMIN ||
-      currentUser?.role === UserRole.FINANCE ||
-      currentUser?.role === UserRole.STREAMING
+      currentUser?.role === UserRole.FINANCE
     ) {
       baseItems.push(
         { text: 'Admin Panel', icon: <AdminPanelSettings />, path: '/admin' },
         { text: 'Admin Finanzas', icon: <AccountBalanceWallet />, path: '/admin/finances' },
+        { text: 'Reportes', icon: <Assessment />, path: '/reports' }
+      );
+    } else if (currentUser?.role === UserRole.STREAMING) {
+      baseItems.push(
+        { text: 'Admin Panel', icon: <AdminPanelSettings />, path: '/admin' },
         { text: 'Reportes', icon: <Assessment />, path: '/reports' }
       );
     }

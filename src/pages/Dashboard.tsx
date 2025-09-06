@@ -202,7 +202,16 @@ const Dashboard: React.FC = () => {
                         ${event.entryCost} MXN
                       </Typography>
                     </CardContent>
-                    {/* No mostrar botón View Event para eventos pasados */}
+                    <Box sx={{ p: 2, pt: 0 }}>
+                      <Button
+                        variant="contained"
+                        fullWidth
+                        startIcon={<LiveTv />}
+                        onClick={() => navigate('/live')}
+                      >
+                        View Event
+                      </Button>
+                    </Box>
                   </Card>
                 ))
               )}
