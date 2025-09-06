@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { getDocs, collection, query, orderBy, limit, startAfter } from 'firebase/firestore';
+import { getDocs, collection, query, orderBy, limit, startAfter, addDoc, updateDoc, doc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../config/firebase';
+import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import UserFinances from '../UserFinances';
 import {
   Dialog,
@@ -31,6 +32,7 @@ import {
 } from '@mui/material';
 import { Upload } from '@mui/icons-material';
 import { useCreateDeposit } from '../../hooks/useUserFinances';
+import { useAuth } from '../../contexts/AuthContext';
 import { Visibility, Search } from '@mui/icons-material';
 
 
@@ -86,6 +88,7 @@ const UsersPage: React.FC = () => {
   });
   const [depositError, setDepositError] = useState('');
   const createDepositMutation = useCreateDeposit();
+  const { currentUser } = useAuth();
 
   const {
     data,
@@ -286,15 +289,33 @@ const UsersPage: React.FC = () => {
                 setDepositError('Por favor ingresa el monto y sube el comprobante.');
                 return;
               }
+              if (!selectedUser) {
+                setDepositError('Usuario no seleccionado.');
+                return;
+              }
               try {
                 setDepositError('');
-                // El depósito se hará para el usuario actual, no el seleccionado, a menos que el hook sea modificado para aceptar userId.
-                await createDepositMutation.mutateAsync({
+                // 1. Subir el comprobante a Storage
+                const storage = getStorage();
+                const storageRef = ref(storage, `deposit-receipts/${selectedUser.id}/${Date.now()}_${depositForm.receipt.name}`);
+                await uploadBytes(storageRef, depositForm.receipt);
+                const receiptUrl = await getDownloadURL(storageRef);
+                // 2. Crear el depósito en Firestore
+                await addDoc(collection(db, 'deposits'), {
+                  userId: selectedUser.id,
                   amount: parseFloat(depositForm.amount),
-                  method: 'Manual (admin)',
+                  method: `Manual (${currentUser?.email || 'admin'})`,
                   reference: 'Depósito manual',
-                  receipt: depositForm.receipt,
-                  // userId: selectedUser.id, // Omitido por error de tipado
+                  receiptUrl,
+                  createdAt: serverTimestamp(),
+                  status: 'approved',
+                  approvedBy: currentUser?.email || 'admin',
+                });
+                // 3. Actualizar el saldo del usuario
+                const userRef = doc(db, 'users', selectedUser.id);
+                await updateDoc(userRef, {
+                  balance: (selectedUser.balance || 0) + parseFloat(depositForm.amount),
+                  totalDeposited: (selectedUser.totalDeposited || 0) + parseFloat(depositForm.amount),
                 });
                 setDepositDialogOpen(false);
               } catch (err: any) {
@@ -302,9 +323,9 @@ const UsersPage: React.FC = () => {
               }
             }}
             variant="contained"
-            disabled={createDepositMutation.isPending || !depositForm.amount || !depositForm.receipt}
+            disabled={!depositForm.amount || !depositForm.receipt}
           >
-            {createDepositMutation.isPending ? 'Enviando...' : 'Registrar Depósito'}
+            Registrar Depósito
           </Button>
         </DialogActions>
       </Dialog>

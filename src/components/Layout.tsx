@@ -87,7 +87,11 @@ const Layout: React.FC<LayoutProps> = ({ children, noPadding = false }) => {
       baseItems.push({ text: 'Usuarios', icon: <Person />, path: '/users' });
     }
 
-    if (currentUser?.role === UserRole.ADMIN) {
+    if (
+      currentUser?.role === UserRole.ADMIN ||
+      currentUser?.role === UserRole.FINANCE ||
+      currentUser?.role === UserRole.STREAMING
+    ) {
       baseItems.push(
         { text: 'Admin Panel', icon: <AdminPanelSettings />, path: '/admin' },
         { text: 'Admin Finanzas', icon: <AccountBalanceWallet />, path: '/admin/finances' },

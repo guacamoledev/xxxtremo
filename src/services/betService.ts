@@ -117,31 +117,42 @@ class BetService {
   // Realizar una apuesta
   async placeBet(userId: string, fightId: string, color: 'red' | 'green', amount: number): Promise<string> {
     return await runTransaction(db, async (transaction) => {
+      // LOG: Inicio de placeBet
+      console.log('[placeBet] userId param:', userId);
+
       // Leer usuario
       const userRef = doc(db, 'users', userId);
       const userDoc = await transaction.get(userRef);
+      console.log('[placeBet] userRef:', userRef.path, 'exists:', userDoc.exists());
       
       if (!userDoc.exists()) {
+        console.error('[placeBet] Usuario no encontrado:', userId);
         throw new Error('Usuario no encontrado');
       }
       
       const user = userDoc.data() as User;
+      console.log('[placeBet] user data:', user);
       
       if (user.balance < amount) {
+        console.error('[placeBet] Saldo insuficiente:', user.balance, '<', amount);
         throw new Error('Saldo insuficiente');
       }
 
       // Leer pelea
       const fightRef = doc(db, 'fights', fightId);
       const fightDoc = await transaction.get(fightRef);
+      console.log('[placeBet] fightRef:', fightRef.path, 'exists:', fightDoc.exists());
       
       if (!fightDoc.exists()) {
+        console.error('[placeBet] Pelea no encontrada:', fightId);
         throw new Error('Pelea no encontrada');
       }
       
       const fight = fightDoc.data() as Fight;
+      console.log('[placeBet] fight data:', fight);
       
       if (!fight.bettingEnabled || fight.status !== 'betting_open') {
+        console.error('[placeBet] Apuestas no disponibles:', { bettingEnabled: fight.bettingEnabled, status: fight.status });
         throw new Error('Las apuestas no están disponibles para esta pelea');
       }
 
@@ -158,6 +169,7 @@ class BetService {
         matches: [],
         isResidual: false,
       };
+      console.log('[placeBet] Creando apuesta:', bet);
 
       transaction.set(betRef, bet);
 
@@ -165,6 +177,7 @@ class BetService {
       transaction.update(userRef, {
         balance: user.balance - amount,
       });
+      console.log('[placeBet] Balance actualizado:', user.balance - amount);
 
       return betRef.id;
     });

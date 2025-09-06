@@ -77,6 +77,9 @@ const EventsPage: React.FC = () => {
   const { data: events, isLoading, error: queryError } = useEvents();
   const { data: palenques } = useActivePalenques();
   const { data: streamingChannels } = useStreamingChannels();
+
+  // Debug logs para identificar problemas con la carga de streamingChannels
+  // ...existing code...
   const createEvent = useCreateEvent();
   const updateEvent = useUpdateEvent();
   const deleteEvent = useDeleteEvent();
@@ -189,7 +192,7 @@ const EventsPage: React.FC = () => {
       try {
         await deleteEvent.mutateAsync(id);
       } catch (err: any) {
-        console.error('Error deleting event:', err);
+  // ...existing code...
       }
     }
   };
@@ -221,7 +224,7 @@ const EventsPage: React.FC = () => {
         updates: { status: newStatus },
       });
     } catch (err: any) {
-      console.error('Error updating event status:', err);
+  // ...existing code...
     }
   };
 
