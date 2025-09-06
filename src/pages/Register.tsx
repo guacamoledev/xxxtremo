@@ -68,6 +68,7 @@ const Register: React.FC = () => {
   });
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
   const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
   const [smsCode, setSmsCode] = useState('');
@@ -173,7 +174,7 @@ const Register: React.FC = () => {
       setLoading(true);
       await confirmationResult.confirm(smsCode);
       setPhoneVerified(true);
-      setError('Teléfono verificado correctamente');
+      setSuccess('Teléfono verificado correctamente');
     } catch (err: any) {
       setError('Código incorrecto');
     } finally {
@@ -204,6 +205,11 @@ const Register: React.FC = () => {
             {error && (
               <Alert severity="error" sx={{ mb: 2 }}>
                 {error}
+              </Alert>
+            )}
+            {success && (
+              <Alert severity="success" sx={{ mb: 2 }}>
+                {success}
               </Alert>
             )}
 
