@@ -67,10 +67,11 @@ service cloud.firestore {
     
     // Deposits collection
     match /deposits/{depositId} {
-      allow read: if isAuthenticated() && 
-                     (isOwner(resource.data.userId) || isUserFinance());
-      allow create: if isAuthenticated() && 
-                       isOwner(request.resource.data.userId);
+      // Permitir leer y crear depósitos propios a cualquier usuario autenticado
+      allow read: if isAuthenticated() && isOwner(resource.data.userId);
+      allow create: if isAuthenticated() && isOwner(request.resource.data.userId);
+      // Permitir a finance y admin leer todos, actualizar y eliminar
+      allow read: if isUserFinance();
       allow update: if isUserFinance();
       allow delete: if isUserAdmin();
     }
