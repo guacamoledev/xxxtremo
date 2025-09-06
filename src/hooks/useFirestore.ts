@@ -903,8 +903,8 @@ export const useUserBalance = (userId: string) => {
   }, [userId, retryCount, showError]);
 
   useEffect(() => {
+    if (!userId) return; // No montar ni limpiar si no hay userId
     const unsubscribe = startListener();
-
     return () => {
       console.log('🧹 useUserBalance: Cleaning up listener for user:', userId);
       if (unsubscribe) unsubscribe();

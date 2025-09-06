@@ -1,0 +1,52 @@
+//TODO xxxtremo
+
+6.- chat de usuarios
+
+Modificar el color del mensaje del SMS del registro ✅
+
+Al registrar cuando vas a terminos y condiciones se borra la vista al regresar
+
+La ventana de perfil no funciona correctamente
+
+
+
+Modificar la vista de calendario para que se adapte mejor a los celulares
+
+Multiples eventos al mismo tiempo. 
+
+
+el icono de xxxtremo debe de mandar a dashboard ✅ 
+
+1.- Cuando vas a hacer un deposito es necesario cambiar el color de las letras  ✅
+
+1.- eliminar los logs
+2.- El historial de apuestas debe solo de mostrar todas las apuestas. ✅
+https://xxxtremo-dev.web.app/history
+
+3.- https://xxxtremo-dev.web.app/finances
+Finanzas solo debe de mostrar el saldo actual ✅
+
+4.- La vista de apuestas y finanzas, usuarios no agrupa adecuadamente todos los elementos de forma orizontal ✅ 
+
+5.- Agregar el chat de soporte ✅
+
+
+
+7.- El usuario finanzas puede ver lo mismo que el streaming ✅
+
+8.- cambiar los errores a español ✅
+
+9.- cambiar el diseño de todos los mensajes que dicen cargando aplicacion ✅
+
+10.- La opcion de perfil no lleva a nada ✅
+11.- si ya estas logueado, la vista de landing te debe de llevar a dashboard ✅
+
+15.- Se debe poder agregar una Imagen del evento o que se seleccione una por defecto.  ✅
+
+17.- Al seleccionar un opcion del menu lateral se debe de cerrar el menu ✅
+
+
+14.- La vista de terminos y condiciones debe de tener el header ✅
+
+
+16.- Bloquear streaming por usuario ✅
