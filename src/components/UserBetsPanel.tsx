@@ -218,7 +218,7 @@ export const UserBetsPanel: React.FC<UserBetsPanelProps> = ({ selectedEventId })
       sx={{
         position: 'fixed',
         bottom: 0,
-        left: 0,
+        left: { xs: 0, sm: '240px' },
         right: 0,
         zIndex: 1000,
         borderTopLeftRadius: 16,
@@ -227,6 +227,8 @@ export const UserBetsPanel: React.FC<UserBetsPanelProps> = ({ selectedEventId })
         borderBottomRightRadius: 0,
         maxHeight: expanded ? '70vh' : 'auto',
         overflow: 'hidden',
+        width: { xs: '100%', sm: 'calc(100% - 240px)' },
+        transition: 'left 0.3s,width 0.3s',
       }}
     >
       {/* Header del panel */}

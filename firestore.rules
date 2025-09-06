@@ -59,11 +59,8 @@ service cloud.firestore {
     
     // Bets collection
     match /bets/{betId} {
-      allow read: if isAuthenticated() && 
-                     (isOwner(resource.data.userId) || isUserAdmin() || isUserFinance());
-      allow list: if isAuthenticated() && (isUserAdmin() || isUserFinance());
-      allow create: if isAuthenticated() && 
-                       request.resource.data.userId == request.auth.uid;
+      allow read, list: if isAuthenticated();
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
       allow update: if isUserAdmin() || isUserFinance();
       allow delete: if isUserAdmin();
     }
