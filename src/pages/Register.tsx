@@ -370,7 +370,7 @@ const Register: React.FC = () => {
                 fullWidth
                 variant="contained"
                 sx={{ mt: 2, mb: 2, py: 1.5 }}
-                disabled={loading}
+                disabled={loading || !phoneVerified}
               >
                 {loading ? <CircularProgress size={24} /> : 'Crear cuenta'}
               </Button>
