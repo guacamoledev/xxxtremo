@@ -43,10 +43,10 @@ service cloud.firestore {
       allow delete: if isUserAdmin();
     }
     
-    // Palenques collection - Admin only for CUD, read for authenticated users
+    // Palenques collection - Admin y Streaming para CUD, read para usuarios autenticados
     match /palenques/{palenqueId} {
       allow read: if isAuthenticated();
-      allow create, update, delete: if isUserAdmin();
+      allow create, update, delete: if isUserAdmin() || isUserStreaming()|| isUserFinance();
     }
     
     // Events collection - Admin and Streaming for CUD, read for authenticated users
