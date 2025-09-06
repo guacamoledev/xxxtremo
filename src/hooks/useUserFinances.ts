@@ -133,13 +133,14 @@ export const useCreateDeposit = () => {
       try {
         console.log('📤 Subiendo comprobante...');
         
-        // Subir archivo a Storage
-        const fileName = `${Date.now()}_${depositData.receipt.name}`;
-        const storagePath = `receipts/deposits/${currentUser.id}/${docRef.id}/${fileName}`;
-          const fileRef = ref(storage, storagePath);
-        
-        const snapshot = await uploadBytes(fileRef, depositData.receipt);
-        const downloadURL = await getDownloadURL(snapshot.ref);
+  // Subir archivo a Storage
+  const fileName = `${Date.now()}_${depositData.receipt.name}`;
+  const storagePath = `receipts/deposits/${currentUser.id}/${docRef.id}/${fileName}`;
+  // Log para depuración de permisos
+  console.log('Subiendo comprobante a:', storagePath, 'currentUser.id:', currentUser.id);
+  const fileRef = ref(storage, storagePath);
+  const snapshot = await uploadBytes(fileRef, depositData.receipt);
+  const downloadURL = await getDownloadURL(snapshot.ref);
         
         // Actualizar el documento con la información del archivo subido
         await updateDoc(doc(db, 'deposits', docRef.id), {
@@ -178,6 +179,8 @@ export const useCreateDeposit = () => {
     onError: (error) => {
       console.error('❌ Error creando depósito:', error);
     }
+    ,
+    retry: false
   });
 };
 

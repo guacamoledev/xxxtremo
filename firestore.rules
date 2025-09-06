@@ -67,12 +67,14 @@ service cloud.firestore {
     
     // Deposits collection
     match /deposits/{depositId} {
-      // Permitir leer y crear depósitos propios a cualquier usuario autenticado
-      allow read: if isAuthenticated() && isOwner(resource.data.userId);
+      // Permitir leer si eres dueño o finance/admin
+      allow read: if (isAuthenticated() && isOwner(resource.data.userId)) || isUserFinance();
       allow create: if isAuthenticated() && isOwner(request.resource.data.userId);
-      // Permitir a finance y admin leer todos, actualizar y eliminar
-      allow read: if isUserFinance();
-      allow update: if isUserFinance();
+      // Permitir al dueño actualizar solo el campo 'receipt' de su propio depósito
+      allow update: if isUserFinance() || (isOwner(resource.data.userId) &&
+        request.resource.data.keys().hasOnly(['userId','userName','userEmail','amount','method','reference','receipt','status','createdAt','commission','netAmount']) &&
+        request.resource.data.diff(resource.data).changedKeys().hasOnly(['receipt'])
+      );
       allow delete: if isUserAdmin();
     }
     
