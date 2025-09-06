@@ -11,8 +11,9 @@ import {
   Container,
   Paper,
   Link,
+  Button,
 } from '@mui/material';
-import { Facebook, Instagram, YouTube } from '@mui/icons-material';
+import { Facebook, Instagram, YouTube, Login } from '@mui/icons-material';
 
 const LandingPage: React.FC = () => {
   const { currentUser } = useAuth();
@@ -32,9 +33,9 @@ const LandingPage: React.FC = () => {
           <Box sx={{ flexGrow: 1 }}>
             <img src={logo} alt="XXXTREMO Logo" style={{ height: 'auto', verticalAlign: 'middle' }} />
           </Box>
-          {/* <Button color="inherit" startIcon={<Login />} href="/login">
+          <Button color="inherit" startIcon={<Login />} href="/login">
             Iniciar sesión
-          </Button> */}
+          </Button>
         </Toolbar>
       </AppBar>
 
@@ -45,16 +46,12 @@ const LandingPage: React.FC = () => {
             PELEAS DE GALLOS EN VIVO
           </Typography>
           <Box sx={{ mt: 4, mb: 2 }}>
-            <Paper elevation={6} sx={{ p: 4, bgcolor: '#97979aff', border: '2px solid #ff9800' }}>
-              <Typography variant="h5" color="error" fontWeight="bold" gutterBottom>
-                Plataforma en mantenimiento
-              </Typography>
-              <Typography variant="body1" color="text.primary">
-                La plataforma XXXTREMO se encuentra en mantenimiento desde el viernes 5 de septiembre 2025.<br/>
-                Estaremos de regreso el domingo 7 de septiembre 2025 a las 5:00 AM.<br/>
-                ¡Gracias por tu comprensión!
-              </Typography>
-            </Paper>
+            <Button variant="contained" color="primary" size="large" href="/register" sx={{ mr: 2 }}>
+              ¡REGÍSTRATE!
+            </Button>
+            <Button variant="outlined" color="primary" size="large" href="/login">
+              Ya tengo cuenta
+            </Button>
           </Box>
           {/**
           <Button variant="contained" color="primary" size="large" href="/register">
@@ -121,11 +118,11 @@ const LandingPage: React.FC = () => {
           </Paper>
         </Box>
 
-        {/* <Box sx={{ textAlign: 'center', mb: 8 }}>
+        <Box sx={{ textAlign: 'center', mb: 8 }}>
           <Button variant="contained" color="secondary" size="large" href="/register">
             ¡REGÍSTRATE YA!
           </Button>
-        </Box> */}
+        </Box> 
       </Container>
 
       {/* Footer */}
