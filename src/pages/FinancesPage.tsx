@@ -510,22 +510,22 @@ const FinancesPage: React.FC = () => {
             </Alert>
 
             {/* Lista de depósitos */}
-            <TableContainer component={Paper} sx={{ width: '100%', overflowX: 'auto', boxShadow: 0 }}>
-              <Table
-                size="small"
-                sx={{
-                  minWidth: { xs: 0, sm: 480 },
-                  tableLayout: 'fixed',
-                  width: '100%',
-                  maxWidth: '100%',
-                }}
-              >
+            <Box sx={{ width: '100%', maxWidth: '100vw', overflowX: 'auto' }}>
+              <TableContainer component={Paper} sx={{ minWidth: 0, boxShadow: 0 }}>
+                <Table
+                  size="small"
+                  sx={{
+                    width: 'max-content',
+                    minWidth: 480,
+                    tableLayout: 'fixed',
+                  }}
+                >
                 <TableHead>
                   <TableRow>
                     <TableCell>Fecha</TableCell>
                     <TableCell>Monto</TableCell>
-                    <TableCell>Método</TableCell>
-                    <TableCell>Referencia</TableCell>
+                    <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>Método</TableCell>
+                    <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>Referencia</TableCell>
                     <TableCell>Estado</TableCell>
                     <TableCell>Motivo de Rechazo</TableCell>
                   </TableRow>
@@ -543,8 +543,8 @@ const FinancesPage: React.FC = () => {
                             ${transaction.amount?.toLocaleString()} MXN
                           </Typography>
                         </TableCell>
-                        <TableCell>{transaction.method || 'Transferencia'}</TableCell>
-                        <TableCell sx={{ whiteSpace: 'normal', wordBreak: 'break-word' }}>
+                        <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>{transaction.method || 'Transferencia'}</TableCell>
+                        <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' }, whiteSpace: 'normal', wordBreak: 'break-word' }}>
                           <Typography variant="body2" fontFamily="monospace" sx={{ overflowWrap: 'anywhere' }}>
                             {transaction.reference || 'N/A'}
                           </Typography>
@@ -581,8 +581,8 @@ const FinancesPage: React.FC = () => {
                 </TableBody>
               </Table>
             </TableContainer>
+          </Box>
           </TabPanel>
-
           {/* Tab 2: Retiros */}
           <TabPanel value={currentTab} index={2}>
             <Box

@@ -89,15 +89,6 @@ export const useCreateDeposit = () => {
         throw new Error('El comprobante no puede superar los 5MB');
       }
 
-      console.log('🔍 useCreateDeposit: Creating deposit with data:', {
-        userId: currentUser.id,
-        userName: currentUser.name,
-        userEmail: currentUser.email,
-        amount: depositData.amount,
-        method: depositData.method,
-        reference: depositData.reference,
-        hasReceipt: !!depositData.receipt
-      });
 
       // Calcular comisión si es necesario (por ahora 0 para depósitos)
       const commission = 0;
@@ -127,17 +118,14 @@ export const useCreateDeposit = () => {
         netAmount
       });
 
-      console.log('✅ Depósito creado con ID:', docRef.id);
 
       // Subir el comprobante a Firebase Storage (ahora siempre hay archivo)
       try {
-        console.log('📤 Subiendo comprobante...');
         
   // Subir archivo a Storage
   const fileName = `${Date.now()}_${depositData.receipt.name}`;
   const storagePath = `receipts/deposits/${currentUser.id}/${docRef.id}/${fileName}`;
   // Log para depuración de permisos
-  console.log('Subiendo comprobante a:', storagePath, 'currentUser.id:', currentUser.id);
   const fileRef = ref(storage, storagePath);
   const snapshot = await uploadBytes(fileRef, depositData.receipt);
   const downloadURL = await getDownloadURL(snapshot.ref);
@@ -155,7 +143,6 @@ export const useCreateDeposit = () => {
           }
         });
         
-        console.log('✅ Comprobante subido exitosamente:', downloadURL);
       } catch (uploadError) {
         console.error('❌ Error subiendo comprobante:', uploadError);
         
@@ -171,7 +158,6 @@ export const useCreateDeposit = () => {
       return docRef.id;
     },
     onSuccess: () => {
-      console.log('✅ useCreateDeposit: Success, invalidating queries for user:', currentUser?.id);
       // Invalidar queries relacionadas
       queryClient.invalidateQueries({ queryKey: ['user-deposits'] });
       queryClient.invalidateQueries({ queryKey: ['user-transactions'] });
@@ -261,8 +247,6 @@ export const useCreateWithdrawal = () => {
         balance: currentUser.balance - withdrawalData.amount
       });
 
-      console.log('✅ Retiro creado con ID:', docRef.id);
-      console.log('💰 Saldo descontado:', withdrawalData.amount, 'Nuevo saldo:', currentUser.balance - withdrawalData.amount);
       
       return docRef.id;
     },
@@ -287,11 +271,9 @@ export const useUserDeposits = () => {
     queryKey: ['user-deposits', currentUser?.id],
     queryFn: async () => {
       if (!currentUser) {
-        console.log('🔍 useUserDeposits: No current user');
         return [];
       }
       
-      console.log('🔍 useUserDeposits: Fetching deposits for user:', currentUser.id);
       
       try {
         const depositsRef = collection(db, 'deposits');
@@ -302,16 +284,10 @@ export const useUserDeposits = () => {
           // orderBy('createdAt', 'desc')
         );
         
-        console.log('🔍 useUserDeposits: Executing query...');
         const snapshot = await getDocs(q);
         
-        console.log('🔍 useUserDeposits: Query result:', {
-          size: snapshot.size,
-          empty: snapshot.empty
-        });
         
         const deposits = snapshot.docs.map(doc => {
-          console.log('🔍 useUserDeposits: Document data:', { id: doc.id, ...doc.data() });
           return {
             id: doc.id,
             ...doc.data(),
@@ -322,7 +298,6 @@ export const useUserDeposits = () => {
         // Sort manually by createdAt
         deposits.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
         
-        console.log('🔍 useUserDeposits: Final deposits:', deposits);
         return deposits;
         
       } catch (error) {
