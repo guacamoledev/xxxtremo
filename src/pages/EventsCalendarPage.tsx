@@ -67,11 +67,11 @@ const EventsCalendarPage: React.FC = () => {
     try {
       let imageUrl = '';
       if (form.image) {
-        const storageRef = ref(storage, `events/${Date.now()}_${form.image.name}`);
+  const storageRef = ref(storage, `calendar-events/${Date.now()}_${form.image.name}`);
         await uploadBytes(storageRef, form.image);
         imageUrl = await getDownloadURL(storageRef);
       }
-      await addDoc(collection(db, 'events'), {
+  await addDoc(collection(db, 'calendar-events'), {
         name: form.name,
         date: form.date,
         location: form.location,
@@ -89,7 +89,7 @@ const EventsCalendarPage: React.FC = () => {
 
   // Leer eventos en tiempo real
   useEffect(() => {
-    const q = query(collection(db, 'events'), orderBy('date', 'asc'));
+  const q = query(collection(db, 'calendar-events'), orderBy('date', 'asc'));
     const unsub = onSnapshot(q, (snap) => {
       setEvents(
         snap.docs.map((doc) => ({
