@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 
 import * as XLSX from 'xlsx';
 import { useQuery } from '@tanstack/react-query';
-import { collection, getDocs, query, orderBy } from 'firebase/firestore';
+import { collection, getDocs, query, orderBy, where } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import {
   Box,
@@ -145,6 +145,46 @@ const ReportsPage: React.FC = () => {
     },
   });
 
+  // Batch fetch approver user info for transactions
+  const approverIds = useMemo(() => {
+    const ids = new Set<string>();
+    transactions.forEach((t: any) => {
+      if (t.approvedBy) ids.add(t.approvedBy);
+      if (t.processedBy) ids.add(t.processedBy);
+    });
+    return Array.from(ids).filter(Boolean);
+  }, [transactions]);
+
+  const { data: approvers = [] } = useQuery({
+    queryKey: ['approvers', approverIds],
+    enabled: approverIds.length > 0,
+    queryFn: async () => {
+      if (approverIds.length === 0) return [];
+      // Firestore get by document ID (batch)
+      const batches = [];
+      for (let i = 0; i < approverIds.length; i += 10) {
+        const batchIds = approverIds.slice(i, i + 10);
+        const col = collection(db, 'users');
+        batches.push(Promise.all(batchIds.map(async (id) => {
+          const docSnap = await getDocs(query(col, where('__name__', 'in', [id])));
+          return docSnap.docs.map(doc => ({ ...doc.data(), id: doc.id }));
+        })));
+      }
+      const results = await Promise.all(batches);
+      // Flatten batches and inner arrays
+      return results.flat(2);
+    },
+  });
+
+  // Map approver id to user info
+  const approverMap = useMemo(() => {
+    const map: Record<string, { name: string; email: string }> = {};
+    approvers.forEach((u: any) => {
+      if (u.id !== undefined && u.id !== null) map[String(u.id)] = { name: u.name, email: u.email };
+    });
+    return map;
+  }, [approvers]);
+
   return (
     <Container maxWidth={false} sx={{ py: { xs: 2, md: 4 } }}>
       <Typography variant="h4" fontWeight="bold" gutterBottom>
@@ -183,6 +223,19 @@ const ReportsPage: React.FC = () => {
                   Tipo: t.type === 'deposit' ? 'Depósito' : 'Retiro',
                   Monto: t.amount,
                   Estado: t.status ? t.status.charAt(0).toUpperCase() + t.status.slice(1) : '-',
+                  'Aprobado por':
+                    (t.approvedBy && approverMap[String(t.approvedBy)]?.name) ||
+                    (t.processedBy && approverMap[String(t.processedBy)]?.name) ||
+                    t.approvedBy || t.processedBy || '-',
+                  'Email aprobador': (() => {
+                    const val = t.approvedBy || t.processedBy || '';
+                    const valStr = String(val);
+                    const isEmail = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(valStr);
+                    if (isEmail) return valStr;
+                    if (valStr && approverMap[valStr]?.email) return approverMap[valStr].email;
+                    if (valStr) return valStr + ' (sin usuario)';
+                    return '-';
+                  })(),
                 }));
                 const ws = XLSX.utils.json_to_sheet(exportData);
                 const wb = XLSX.utils.book_new();
@@ -198,11 +251,13 @@ const ReportsPage: React.FC = () => {
             <Table size="small">
               <TableHead>
                 <TableRow>
-                  <TableCell>Fecha</TableCell>
-                  <TableCell>Usuario</TableCell>
-                  <TableCell>Tipo</TableCell>
-                  <TableCell>Monto</TableCell>
-                  <TableCell>Estado</TableCell>
+                  <TableCell sx={{ minWidth: 120 }}>Fecha</TableCell>
+                  <TableCell sx={{ minWidth: 120 }}>Usuario</TableCell>
+                  <TableCell sx={{ minWidth: 90 }}>Tipo</TableCell>
+                  <TableCell sx={{ minWidth: 90 }}>Monto</TableCell>
+                  <TableCell sx={{ minWidth: 90 }}>Estado</TableCell>
+                  <TableCell sx={{ minWidth: 140 }}>Aprobado por</TableCell>
+                  <TableCell sx={{ minWidth: 180 }}>Email aprobador</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -214,7 +269,7 @@ const ReportsPage: React.FC = () => {
                   </TableRow>
                 ) : transactions.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} align="center">Sin datos</TableCell>
+                    <TableCell colSpan={7} align="center">Sin datos</TableCell>
                   </TableRow>
                 ) : (
                   transactions.map((t: any) => (
@@ -232,6 +287,20 @@ const ReportsPage: React.FC = () => {
                       <TableCell>{t.type === 'deposit' ? 'Depósito' : 'Retiro'}</TableCell>
                       <TableCell>${t.amount?.toLocaleString('es-MX')} MXN</TableCell>
                       <TableCell>{t.status ? t.status.charAt(0).toUpperCase() + t.status.slice(1) : '-'}</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>{
+                        (t.approvedBy && approverMap[String(t.approvedBy)]?.name) ||
+                        (t.processedBy && approverMap[String(t.processedBy)]?.name) ||
+                        t.approvedBy || t.processedBy || '-'
+                      }</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>{(() => {
+                        const val = t.approvedBy || t.processedBy || '';
+                        const valStr = String(val);
+                        const isEmail = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(valStr);
+                        if (isEmail) return valStr;
+                        if (valStr && approverMap[valStr]?.email) return approverMap[valStr].email;
+                        if (valStr) return valStr + ' (sin usuario)';
+                        return '-';
+                      })()}</TableCell>
                     </TableRow>
                   ))
                 )}
