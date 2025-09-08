@@ -49,7 +49,7 @@ const EventsCalendarPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [fullImage, setFullImage] = useState<string | null>(null);
 
-  const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'streaming';
+  const isAdmin = ['admin', 'finance', 'streaming'].includes(String(currentUser?.role));
 
   // Handle image preview
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {

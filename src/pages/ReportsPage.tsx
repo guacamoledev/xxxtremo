@@ -1,5 +1,3 @@
-
-
 import React, { useState, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { UserRole } from '../types';
@@ -16,6 +14,27 @@ import { Container, Typography, Paper, Tabs, Tab, Divider, Box, TableContainer, 
 function ComisionesPorEvento({ bets }: { bets: any[] }) {
   const [eventos, setEventos] = useState<Record<string, { total: number; comision: number; count: number, montos: number[] }>>({});
   const [eventNames, setEventNames] = useState<Record<string, string>>({});
+  // Buscar eventos faltantes si no están en eventNames
+  const [eventosExtra, setEventosExtra] = useState<Record<string, { name?: string; date?: any }>>({});
+
+  React.useEffect(() => {
+    const eventIds = Object.keys(eventos).filter(eid => !eventNames[eid]);
+    if (eventIds.length === 0) return;
+    let isMounted = true;
+    (async () => {
+      for (let i = 0; i < eventIds.length; i += 10) {
+        const batch = eventIds.slice(i, i + 10);
+        const snap = await getDocs(query(collection(db, 'events'), where('__name__', 'in', batch)));
+        const found: Record<string, { name?: string; date?: any }> = {};
+        snap.docs.forEach(doc => {
+          const data = doc.data();
+          found[doc.id] = { name: data.name, date: data.date };
+        });
+        if (isMounted) setEventosExtra(prev => ({ ...prev, ...found }));
+      }
+    })();
+    return () => { isMounted = false; };
+  }, [eventos, eventNames]);
   const [loading, setLoading] = useState(true);
   const eventosRef = useRef<Record<string, { total: number; comision: number; count: number, montos: number[] }>>({});
 
@@ -124,20 +143,33 @@ function ComisionesPorEvento({ bets }: { bets: any[] }) {
   }
   return <>
     <TableRow>
-      <TableCell colSpan={5} align="right">
+      <TableCell colSpan={6} align="right">
         <Button variant="contained" color="primary" onClick={handleExportExcel} sx={{ mt: 1, mb: 1 }}>
           Exportar a Excel
         </Button>
       </TableCell>
     </TableRow>
-    {rows.map(([eventId, vals]) => (
-      <TableRow key={eventId}>
-        <TableCell>{eventNames[eventId] || eventId}</TableCell>
-        <TableCell>${vals.total.toLocaleString('es-MX', { maximumFractionDigits: 2 })} MXN</TableCell>
-        <TableCell>${vals.comision.toLocaleString('es-MX', { maximumFractionDigits: 2 })} MXN</TableCell>
-        <TableCell>{vals.count}</TableCell>
-      </TableRow>
-    ))}
+    {rows.map(([eventId, vals]) => {
+      // Mostrar nombre y fecha del evento si existen
+      let display = eventNames[eventId] || eventosExtra[eventId]?.name || eventId;
+      let fecha = '';
+      if (eventosExtra[eventId]?.date) {
+        const d = eventosExtra[eventId].date.seconds ? new Date(eventosExtra[eventId].date.seconds * 1000) : new Date(eventosExtra[eventId].date);
+        fecha = d.toLocaleDateString('es-MX');
+      }
+      if (!fecha && eventNames[eventId] && /\d{4}-\d{2}-\d{2}/.test(eventNames[eventId])) {
+        fecha = eventNames[eventId].match(/\d{4}-\d{2}-\d{2}/)?.[0] || '';
+      }
+      return (
+        <TableRow key={eventId}>
+          <TableCell>{display}</TableCell>
+          <TableCell>{fecha}</TableCell>
+          <TableCell>${vals.total.toLocaleString('es-MX', { maximumFractionDigits: 2 })} MXN</TableCell>
+          <TableCell>${vals.comision.toLocaleString('es-MX', { maximumFractionDigits: 2 })} MXN</TableCell>
+          <TableCell>{vals.count}</TableCell>
+        </TableRow>
+      );
+    })}
   </>;
 }
 // ...eliminado código suelto y duplicado fuera de función...
@@ -212,6 +244,7 @@ const ReportsPage: React.FC = () => {
     return Array.from(ids).filter(Boolean);
   }, [transactions]);
 
+  // Batch fetch approver user info for transactions
   const { data: approvers = [] } = useQuery({
     queryKey: ['approvers', approverIds],
     enabled: approverIds.length > 0,
@@ -233,7 +266,7 @@ const ReportsPage: React.FC = () => {
   // Map approver id to user info
   const approverMap = React.useMemo(() => {
     const map: Record<string, { name: string; email: string }> = {};
-    approvers.forEach((u: any) => {
+    (approvers || []).forEach((u: any) => {
       if (u.id !== undefined && u.id !== null) map[String(u.id)] = { name: u.name, email: u.email };
     });
     return map;
@@ -300,8 +333,24 @@ const ReportsPage: React.FC = () => {
             <Button variant="contained" color="primary" onClick={() => {
               // Exportar a Excel las transacciones
               const rows = transactions.map((t: any) => {
-                const approverId = t.approvedBy || t.processedBy;
-                const approver = approverId ? approverMap[approverId] : null;
+                // Solo uno de los dos campos existe por transacción
+                let aprobadorStr = '-';
+                if (t.processedBy) {
+                  const user = approverMap[t.processedBy];
+                  aprobadorStr = user
+                    ? (user.name ? `${user.name} (${user.email || t.processedBy})` : (user.email || t.processedBy))
+                    : t.processedBy;
+                } else if (t.approvedBy) {
+                  // Puede ser email directo o un ID
+                  if (t.method && t.method.startsWith('Manual')) {
+                    aprobadorStr = t.approvedBy;
+                  } else {
+                    const user = approverMap[t.approvedBy];
+                    aprobadorStr = user
+                      ? (user.name ? `${user.name} (${user.email || t.approvedBy})` : (user.email || t.approvedBy))
+                      : t.approvedBy;
+                  }
+                }
                 const date = t.createdAt ? new Date(t.createdAt.seconds ? t.createdAt.seconds * 1000 : t.createdAt).toLocaleString('es-MX') : '';
                 const user = t.userId ? userMap[t.userId] : null;
                 const usuario = user ? (user.name || user.email || t.userId) : (t.userName || t.userEmail || t.userId || '-');
@@ -310,7 +359,7 @@ const ReportsPage: React.FC = () => {
                   Monto: t.amount || 0,
                   Usuario: usuario,
                   Fecha: date,
-                  Aprobador: approver ? `${approver.name || ''} (${approver.email || ''})` : '-',
+                  Aprobador: aprobadorStr || '-',
                   Estado: t.status || '-',
                   __id__: t.id,
                 };
@@ -342,8 +391,23 @@ const ReportsPage: React.FC = () => {
                   </TableRow>
                 ) : (
                   transactions.map((t: any) => {
-                    const approverId = t.approvedBy || t.processedBy;
-                    const approver = approverId ? approverMap[approverId] : null;
+                    // Solo uno de los dos campos existe por transacción
+                    let aprobadorStr = '-';
+                    if (t.processedBy) {
+                      const user = approverMap[t.processedBy];
+                      aprobadorStr = user
+                        ? (user.name ? `${user.name} (${user.email || t.processedBy})` : (user.email || t.processedBy))
+                        : t.processedBy;
+                    } else if (t.approvedBy) {
+                      if (t.method && t.method.startsWith('Manual')) {
+                        aprobadorStr = t.approvedBy;
+                      } else {
+                        const user = approverMap[t.approvedBy];
+                        aprobadorStr = user
+                          ? (user.name ? `${user.name} (${user.email || t.approvedBy})` : (user.email || t.approvedBy))
+                          : t.approvedBy;
+                      }
+                    }
                     const date = t.createdAt ? new Date(t.createdAt.seconds ? t.createdAt.seconds * 1000 : t.createdAt).toLocaleString('es-MX') : '';
                     return (
                       <TableRow key={t.id}>
@@ -354,7 +418,7 @@ const ReportsPage: React.FC = () => {
                           return user ? (user.name || user.email || t.userId) : (t.userName || t.userEmail || t.userId || '-');
                         })()}</TableCell>
                         <TableCell>{date}</TableCell>
-                        <TableCell>{approver ? `${approver.name || ''} (${approver.email || ''})` : '-'}</TableCell>
+                        <TableCell>{aprobadorStr || '-'}</TableCell>
                         <TableCell>{t.status || '-'}</TableCell>
                       </TableRow>
                     );
@@ -379,6 +443,7 @@ const ReportsPage: React.FC = () => {
               <TableHead>
                 <TableRow>
                   <TableCell>Evento</TableCell>
+                  <TableCell>Fecha del Evento</TableCell>
                   <TableCell>Total Apostado</TableCell>
                   <TableCell>Comisión (10%)</TableCell>
                   <TableCell>Número de Apuestas</TableCell>
