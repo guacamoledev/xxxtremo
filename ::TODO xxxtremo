@@ -1,21 +1,44 @@
 //TODO xxxtremo
 
-cuando estas en la vista live desde escritorio el elemento "Mis apuestas evento" no se ve completo porque lo tapa el menu lateral ✅
 
-6.- chat de usuarios
+En lab de historico debe de mostrarse el motivo del rechazo  
+Agregar la funcionalidad de favorito 
+Me aparece en la vista NaN
+Cazar apuestas
 
-Modificar el color del mensaje del SMS del registro ✅
+Modificar la forma en la que se uza el nombre en el titulo del streaming porque cuando no hay peleas activas tiene el nombre de la pelea erronea 
+
+Agregar la funcionalidad de cambiar el resultado de la pelea 
+
+Modificar el mensaje de error cuando un usuario intenta hacer un retiro con un monto mayor al balance. 
+
+Se ve dos veces admin finanzas y reportes 
 
 Al registrar cuando vas a terminos y condiciones se borra la vista al regresar
 
 La ventana de perfil no funciona correctamente
 
-
-
 Modificar la vista de calendario para que se adapte mejor a los celulares
 
 Multiples eventos al mismo tiempo. 
 
+6.- chat de usuarios
+
+
+
+Cuando un usaurio es admin o fianzas y se intenta generar un deposto manual, no esta ocurriendo y no tengo errores en la vista ✅
+
+El boton de crear cuenta debe de estar deshabilitado hasta que verifiquen el numero de celular.  ✅
+
+Quitar la opcion de Admin finanzas del panel lateral si el usuario es streaming ✅
+
+En peleas actuales no se ve el boton de view event ✅
+
+Cambiar el orden en el que registran los partidos al crear pelea ✅
+
+cuando estas en la vista live desde escritorio el elemento "Mis apuestas evento" no se ve completo porque lo tapa el menu lateral ✅
+
+Modificar el color del mensaje del SMS del registro ✅
 
 el icono de xxxtremo debe de mandar a dashboard ✅ 
 
@@ -32,8 +55,6 @@ Finanzas solo debe de mostrar el saldo actual ✅
 
 5.- Agregar el chat de soporte ✅
 
-
-
 7.- El usuario finanzas puede ver lo mismo que el streaming ✅
 
 8.- cambiar los errores a español ✅
@@ -47,8 +68,6 @@ Finanzas solo debe de mostrar el saldo actual ✅
 
 17.- Al seleccionar un opcion del menu lateral se debe de cerrar el menu ✅
 
-
 14.- La vista de terminos y condiciones debe de tener el header ✅
-
 
 16.- Bloquear streaming por usuario ✅
