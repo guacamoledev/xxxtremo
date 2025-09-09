@@ -21,7 +21,26 @@ const Login: React.FC = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   
-  const { login } = useAuth();
+  const { login, resetPassword } = useAuth();
+  const [resetEmail, setResetEmail] = useState('');
+  const [resetSent, setResetSent] = useState(false);
+  const [resetError, setResetError] = useState('');
+  const [showReset, setShowReset] = useState(false);
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setResetError('');
+    setResetSent(false);
+    if (!resetEmail) {
+      setResetError('Ingresa tu correo electrónico');
+      return;
+    }
+    try {
+      await resetPassword(resetEmail);
+      setResetSent(true);
+    } catch (error: any) {
+      setResetError(traducirErrorFirebase(error));
+    }
+  };
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -71,7 +90,8 @@ const Login: React.FC = () => {
               </Alert>
             )}
 
-            <Box component="form" onSubmit={handleSubmit} sx={{ mt: 1 }}>
+            {!showReset ? (
+              <Box component="form" onSubmit={handleSubmit} sx={{ mt: 1 }}>
               <TextField
                 margin="normal"
                 required
@@ -98,23 +118,60 @@ const Login: React.FC = () => {
                 onChange={(e) => setPassword(e.target.value)}
                 disabled={loading}
               />
-              <Button
-                type="submit"
-                fullWidth
-                variant="contained"
-                sx={{ mt: 3, mb: 2, py: 1.5 }}
-                disabled={loading}
-              >
-                {loading ? <CircularProgress size={24} /> : 'Iniciar sesión'}
-              </Button>
-              {/*
-              <Box sx={{ textAlign: 'center' }}>
-                <Link component={RouterLink} to="/register" variant="body2">
-                  {"¿No tienes una cuenta? Regístrate"}
-                </Link>
+                <Button
+                  type="submit"
+                  fullWidth
+                  variant="contained"
+                  sx={{ mt: 3, mb: 2, py: 1.5 }}
+                  disabled={loading}
+                >
+                  {loading ? <CircularProgress size={24} /> : 'Iniciar sesión'}
+                </Button>
+                <Box sx={{ textAlign: 'center', mt: 1 }}>
+                  <Button variant="text" size="small" onClick={() => setShowReset(true)}>
+                    ¿Olvidaste tu contraseña?
+                  </Button>
+                </Box>
               </Box>
-              */}
-            </Box>
+            ) : (
+              <Box component="form" onSubmit={handleResetPassword} sx={{ mt: 1 }}>
+                <TextField
+                  margin="normal"
+                  required
+                  fullWidth
+                  id="resetEmail"
+                  label="Correo electrónico"
+                  name="resetEmail"
+                  autoComplete="email"
+                  autoFocus
+                  value={resetEmail}
+                  onChange={(e) => setResetEmail(e.target.value)}
+                  disabled={loading}
+                />
+                <Button
+                  type="submit"
+                  fullWidth
+                  variant="contained"
+                  sx={{ mt: 3, mb: 2, py: 1.5 }}
+                  disabled={loading}
+                >
+                  {loading ? <CircularProgress size={24} /> : 'Enviar enlace de recuperación'}
+                </Button>
+                <Box sx={{ textAlign: 'center', mt: 1 }}>
+                  <Button variant="text" size="small" onClick={() => setShowReset(false)}>
+                    Volver a iniciar sesión
+                  </Button>
+                </Box>
+                {resetError && (
+                  <Alert severity="error" sx={{ mb: 2 }}>{resetError}</Alert>
+                )}
+                {resetSent && (
+                  <Alert severity="success" sx={{ mb: 2 }}>
+                    Si el correo está registrado, se ha enviado un enlace para restablecer tu contraseña.
+                  </Alert>
+                )}
+              </Box>
+            )}
           </CardContent>
         </Card>
       </Box>
