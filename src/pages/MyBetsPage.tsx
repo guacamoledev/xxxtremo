@@ -32,8 +32,9 @@ import type { Bet } from '../types';
 
 // Importaciones para obtener depósitos
 import { useQuery } from '@tanstack/react-query';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { collection, query, where, getDocs, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../config/firebase';
+const fbCollection = collection;
 
 const MyBetsPage: React.FC = () => {
   // ...existing code...
@@ -127,7 +128,35 @@ const MyBetsPage: React.FC = () => {
   // Fórmula del Saldo Esperado (verificación de integridad basada en transacciones históricas)
   // Saldo Esperado = Lo que ingresó - Lo que retiró - Lo pendiente de retirar - Lo que apostó + Lo que ganó
   const saldoEsperado = totalIngresado - totalRetirado - retirosPendientes - totalLost + totalWon - apuestasActivas;
-  const diferencia = saldoEsperado - saldoActual;
+  const diferencia = saldoActual - saldoEsperado;
+
+  // Log de discrepancia a Firestore si se detecta (solo log, no alerta visible)
+  const hasLoggedDiscrepancy = React.useRef(false);
+  React.useEffect(() => {
+    if (
+      currentUser &&
+      Math.abs(diferencia) > 0 &&
+      !hasLoggedDiscrepancy.current
+    ) {
+      const errorString =
+        diferencia > 0
+          ? `El saldo actual es ${diferencia.toLocaleString()} MXN mayor al esperado según transacciones históricas. Revisar inconsistencias.`
+          : `El saldo actual es ${Math.abs(diferencia).toLocaleString()} MXN menor al esperado. Verificar transacciones pendientes o errores.`;
+      addDoc(fbCollection(db, 'discrepancy_logs'), {
+        uid: currentUser.id,
+        email: currentUser.email,
+        error: errorString,
+        createdAt: serverTimestamp(),
+        context: 'MyBetsPage',
+      }).catch((e) => {
+        console.error('Error guardando log de discrepancia:', e);
+      });
+      hasLoggedDiscrepancy.current = true;
+    }
+    if (Math.abs(diferencia) === 0) {
+      hasLoggedDiscrepancy.current = false;
+    }
+  }, [currentUser, diferencia]);
 
   // const winRate = totalBets > 0 ? (wonBets / (wonBets + lostBets)) * 100 : 0;
 
@@ -189,6 +218,7 @@ const MyBetsPage: React.FC = () => {
     />
   );
 
+
   if (!currentUser) {
     return (
       <Container maxWidth="lg">
@@ -200,6 +230,7 @@ const MyBetsPage: React.FC = () => {
       </Container>
     );
   }
+
 
   if (isLoading) {
     return (
@@ -222,6 +253,7 @@ const MyBetsPage: React.FC = () => {
     );
   }
 
+
   if (error) {
     return (
       <Container maxWidth="lg">
@@ -237,6 +269,7 @@ const MyBetsPage: React.FC = () => {
     );
   }
 
+  // No mostrar ningún mensaje de discrepancia al usuario
   return (
     <Container
       maxWidth="lg"
@@ -338,22 +371,7 @@ const MyBetsPage: React.FC = () => {
               </Alert>
             )}
             
-            {Math.abs(diferencia) > 0 && (
-              <Alert severity={diferencia > 0 ? "warning" : "error"} sx={{ mt: 1 }}>
-                <Typography variant="body2" fontWeight="bold">
-                  {diferencia > 0 ? '⚠️ Discrepancia Detectada' : '� Verificación de Saldos'}
-                </Typography>
-                <Typography variant="body2">
-                  {diferencia > 0 
-                    ? `El saldo actual es ${diferencia.toLocaleString()} MXN mayor al esperado según transacciones históricas. Revisar inconsistencias.`
-                    : `El saldo actual es ${Math.abs(diferencia).toLocaleString()} MXN menor al esperado. Verificar transacciones pendientes o errores.`
-                  }
-                </Typography>
-                <Typography variant="caption" sx={{ mt: 1, display: 'block', opacity: 0.8 }}>
-                  💡 El saldo esperado se calcula como: Ingresado - Retirado - Retiros Pendientes - Total Apostado + Total Ganado
-                </Typography>
-              </Alert>
-            )}
+            {/* Alerta de discrepancia oculta para el usuario, pero el log sigue guardándose en Firestore */}
           </CardContent>
         </Card>
 
