@@ -311,43 +311,73 @@ const Register: React.FC = () => {
                   </Box>
                 )}
               </Box>
-              <TextField
-                margin="normal"
-                required
-                fullWidth
-                id="email"
-                label="Correo electrónico"
-                name="email"
-                autoComplete="email"
-                value={formData.email}
-                onChange={handleChange}
-                disabled={loading}
-              />
-              <TextField
-                margin="normal"
-                required
-                fullWidth
-                name="password"
-                label="Contraseña"
-                type="password"
-                id="password"
-                autoComplete="new-password"
-                value={formData.password}
-                onChange={handleChange}
-                disabled={loading}
-              />
-              <TextField
-                margin="normal"
-                required
-                fullWidth
-                name="confirmPassword"
-                label="Confirmar contraseña"
-                type="password"
-                id="confirmPassword"
-                value={formData.confirmPassword}
-                onChange={handleChange}
-                disabled={loading}
-              />
+              {/* Tooltip en desktop, helperText en móvil para campos deshabilitados por teléfono no verificado */}
+              {(() => {
+                const isMobile = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(max-width: 600px)').matches;
+                const helpMsg = 'Es necesario validar primero tu teléfono para habilitar este campo';
+                return (
+                  <>
+                    <Box>
+                      <TextField
+                        margin="normal"
+                        required
+                        fullWidth
+                        id="email"
+                        label="Correo electrónico"
+                        name="email"
+                        autoComplete="email"
+                        value={formData.email}
+                        onChange={handleChange}
+                        disabled={loading || !phoneVerified}
+                        InputProps={{
+                          readOnly: loading || !phoneVerified,
+                        }}
+                        {...(!phoneVerified && !isMobile ? { title: helpMsg } : {})}
+                        helperText={!phoneVerified && isMobile ? helpMsg : ''}
+                      />
+                    </Box>
+                    <Box>
+                      <TextField
+                        margin="normal"
+                        required
+                        fullWidth
+                        name="password"
+                        label="Contraseña"
+                        type="password"
+                        id="password"
+                        autoComplete="new-password"
+                        value={formData.password}
+                        onChange={handleChange}
+                        disabled={loading || !phoneVerified}
+                        InputProps={{
+                          readOnly: loading || !phoneVerified,
+                        }}
+                        {...(!phoneVerified && !isMobile ? { title: helpMsg } : {})}
+                        helperText={!phoneVerified && isMobile ? helpMsg : ''}
+                      />
+                    </Box>
+                    <Box>
+                      <TextField
+                        margin="normal"
+                        required
+                        fullWidth
+                        name="confirmPassword"
+                        label="Confirmar contraseña"
+                        type="password"
+                        id="confirmPassword"
+                        value={formData.confirmPassword}
+                        onChange={handleChange}
+                        disabled={loading || !phoneVerified}
+                        InputProps={{
+                          readOnly: loading || !phoneVerified,
+                        }}
+                        {...(!phoneVerified && !isMobile ? { title: helpMsg } : {})}
+                        helperText={!phoneVerified && isMobile ? helpMsg : ''}
+                      />
+                    </Box>
+                  </>
+                );
+              })()}
               <Box sx={{ display: 'flex', alignItems: 'center', mt: 2, mb: 1 }}>
                 <input
                   type="checkbox"
